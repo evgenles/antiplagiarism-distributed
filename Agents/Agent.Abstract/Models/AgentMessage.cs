@@ -1,6 +1,7 @@
 ﻿using System;
+using AgentLoader.Models;
 
-namespace AgentLoader.Models
+namespace Agent.Abstract.Models
 {
     public class AgentMessage
     {
@@ -12,6 +13,6 @@ namespace AgentLoader.Models
 
         public object Data { get; set; }
         
-        
+
     }
 }

@@ -1,7 +1,8 @@
 ﻿using System.Threading.Tasks;
+using Agent.Abstract.Models;
 using AgentLoader.Models;
 
-namespace AgentLoader.Agent
+namespace Agent.Abstract
 {
     public interface IAgent
     {
@@ -9,7 +10,7 @@ namespace AgentLoader.Agent
         
         public string SubType { get; }
 
-        public Task<bool> ProcessMessage(AgentMessage message);
+        public Task<bool> ProcessMessageAsync(AgentMessage message);
         
     }
 }
