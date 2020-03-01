@@ -9,6 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Agents\AgentLoader\AgentLoader.csproj" />
     <ProjectReference Include="..\Client\Ui.Client.csproj" />
     <ProjectReference Include="..\Shared\Ui.Shared.csproj" />
   </ItemGroup>

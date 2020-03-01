@@ -1,5 +1,4 @@
 ﻿using System;
-using AgentLoader.Models;
 
 namespace Agent.Abstract.Models
 {

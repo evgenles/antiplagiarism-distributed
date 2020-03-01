@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -18,6 +19,7 @@ namespace AgentLoader
     {
         public static void Main(string[] args)
         {
+            Console.WriteLine($"PID: {Process.GetCurrentProcess().Id}");
             CreateHostBuilder(args).Build().Run();
         }
 

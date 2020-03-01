@@ -14,6 +14,7 @@ namespace Ui.Server
         public static IWebHost BuildWebHost(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
                 .UseConfiguration(new ConfigurationBuilder()
+                    .AddJsonFile("appsettings.json")
                     .AddCommandLine(args)
                     .Build())
                 .UseStartup<Startup>()

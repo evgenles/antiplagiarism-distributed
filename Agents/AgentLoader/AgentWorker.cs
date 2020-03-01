@@ -55,12 +55,56 @@ namespace AgentLoader
         {
             var tasks = _agents.Select(x => Task.Run(() => AgentExecutable(x, stoppingToken), stoppingToken))
                 .ToArray();
-            Task.WaitAll(tasks);
-            return Task.CompletedTask;
+            return Task.WhenAll(tasks);
+        }
+
+        public override async Task StopAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                foreach (var agent in _agents)
+                {
+                    await SendMessageAsync(new AgentMessage
+                    {
+                        Author = new Author(agent),
+                        Data = new ConnectionMessage
+                        {
+                            State = AgentState.Disconnected
+                        },
+                        MessageType = MessageType.Connection,
+                        SendDate = DateTime.Now
+                    });
+                }
+                await base.StopAsync(cancellationToken);
+            }
+            catch (Exception e) when(e !is OperationCanceledException)
+            {
+                Console.WriteLine(e);
+            }
+
+        }
+
+        private async Task SendHeartbeatAsync(AgentAbstract agent, CancellationToken stoppingToken)
+        {
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                await Task.Delay(5000, stoppingToken);
+                await SendMessageAsync(new AgentMessage
+                {
+                    Author = new Author(agent),
+                    Data = new ConnectionMessage
+                    {
+                        State = agent.State
+                    },
+                    MessageType = MessageType.Connection,
+                    SendDate = DateTime.Now
+                });
+            }
         }
 
         private async Task AgentExecutable(AgentAbstract agent, CancellationToken stoppingToken)
         {
+            agent.StoppingToken = stoppingToken;
             var config = new ConsumerConfig()
             {
                 BootstrapServers = _configuration.KafkaBootstrap,
@@ -69,16 +113,17 @@ namespace AgentLoader
                 AutoOffsetReset = AutoOffsetReset.Earliest,
                 GroupId = agent.Type + "_" + agent.SubType
             };
+            var heartbeatTask = Task.Run(() => SendHeartbeatAsync(agent, stoppingToken), stoppingToken);
             var consumer = new ConsumerBuilder<string, string>(config).Build();
-            foreach (var support in agent.SupportedMessage)
-            {
-                consumer.Subscribe(support.ToString());
-            }
+            consumer.Subscribe(agent.SupportedMessage.Select(x => x.ToString()));
 
             await SendMessageAsync(new AgentMessage
             {
                 Author = new Author(agent),
-                Data = "Connected",
+                Data = new ConnectionMessage
+                {
+                    State = AgentState.Connected
+                },
                 MessageType = MessageType.Connection,
                 SendDate = DateTime.Now
             });
@@ -87,15 +132,25 @@ namespace AgentLoader
                 try
                 {
                     var result = consumer.Consume();
-                    _logger.LogInformation($"Consumed message {result.Key}, {result.Value}");
-                    await agent.ProcessMessageAsync(JsonSerializer.Deserialize<AgentMessage>(result.Message.Value));
+                    var msg = JsonSerializer.Deserialize<AgentMessage>(result.Message.Value);
+                    if (msg.Author.Id != agent.Id)
+                    {
+                        agent.State = AgentState.InWork;
+                        _logger.LogInformation($"Consumed message {result.Key}, {result.Value}");
+                        await agent.ProcessMessageAsync(msg);
+                    }
+
                     consumer.Commit();
                 }
-                catch (Exception e)
+                catch (Exception e) when (e ! is OperationCanceledException)
                 {
                     Console.WriteLine(e);
                 }
+
+                agent.State = AgentState.Online;
             }
+
+            await heartbeatTask;
         }
     }
 }

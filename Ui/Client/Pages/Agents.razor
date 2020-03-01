@@ -1,0 +1,59 @@
+﻿@page "/agents"
+@using Agent.Abstract.Models
+@using Microsoft.AspNetCore.SignalR.Client
+@using Ui.Shared
+@using BlazorTable
+@inject NavigationManager NavigationManager
+
+<Table TableItem="ConnectionMessage" Items="connectionMessages" PageSize="15">
+    <Column TableItem="ConnectionMessage" Title="MachineName" Field="@(x =>x.Who.MachineName)" Sortable="true" Filterable="true" Width="10%"/>
+    <Column TableItem="ConnectionMessage" Title="Id" Field="@(x =>x.Who.Id)" Sortable="true" Filterable="true" Width="20%"/>
+    <Column TableItem="ConnectionMessage" Title="Ips" Field="@(x => x.Who.Ip)" Sortable="true" Filterable="true" Width="20%"/>
+    <Column TableItem="ConnectionMessage" Title="Type" Field="@(x => x.Who.Type)" Sortable="true" Filterable="true" Width="20%"/>
+    <Column TableItem="ConnectionMessage" Title="SubType" Field="@(x => x.Who.SubType)" Sortable="true" Filterable="true" Width="20%"/>
+    <Column TableItem="ConnectionMessage" Title="State" Field="@(x => x.State)" Sortable="true" Filterable="true" Width="20%"/>
+    <Pager ShowPageNumber="true" ShowTotalCount="true"/>
+</Table>
+
+@code {
+    private HubConnection _hubConnection;
+    private List<ConnectionMessage> connectionMessages = new List<ConnectionMessage>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/agentHub"))
+            .Build();
+
+        _hubConnection.On<ConnectionMessage>(SignalRMessages.AgentConnections.ToString(), (msg) =>
+        {
+            switch (msg.State)
+            {
+                case AgentState.Connected:
+                    connectionMessages.Add(msg);
+                    break;
+                    
+                case AgentState.Disconnected:
+                    connectionMessages.RemoveAll(x => x.Who.Id == msg.Who.Id);
+                    break;
+                    
+                default:
+                    var connection = connectionMessages.FirstOrDefault(x => x.Who.Id == msg.Who.Id);
+                    if (connection != null)
+                    {
+                        connection.State = msg.State;
+                    }
+                    else
+                    {
+                        connectionMessages.Add(msg);
+                    }
+                    break;
+            }
+            
+            StateHasChanged();
+        });
+
+        await _hubConnection.StartAsync();
+    }
+
+}

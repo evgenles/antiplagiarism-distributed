@@ -1,9 +1,10 @@
-﻿using Agent.Abstract;
+﻿using System;
 
-namespace AgentLoader.Models
+namespace Agent.Abstract.Models
 {
     public class Author
     {
+        public Guid Id { get; set; }
         public AgentType Type { get; set; }
         
         public string SubType { get; set; }
@@ -21,6 +22,7 @@ namespace AgentLoader.Models
             SubType = agent.SubType;
             Version = agent.Version;
             MachineName = agent.MachineName;
+            Id = agent.Id;
         }
         
         public Author(){}

@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Agent.Abstract", "Agents\Ag
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestAgent", "Agents\TestAgent\TestAgent.csproj", "{D2415A9E-33F0-48F2-A26A-EF4A2FE0B9EB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConnectionAnalyzerAgent", "Agents\ConnectionAnalyzerAgent\ConnectionAnalyzerAgent.csproj", "{911BEB3F-E665-4B71-8DAC-14B745272988}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -53,6 +55,10 @@ Global
 		{D2415A9E-33F0-48F2-A26A-EF4A2FE0B9EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D2415A9E-33F0-48F2-A26A-EF4A2FE0B9EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D2415A9E-33F0-48F2-A26A-EF4A2FE0B9EB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{911BEB3F-E665-4B71-8DAC-14B745272988}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{911BEB3F-E665-4B71-8DAC-14B745272988}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{911BEB3F-E665-4B71-8DAC-14B745272988}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{911BEB3F-E665-4B71-8DAC-14B745272988}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -64,5 +70,6 @@ Global
 		{94A42D20-9A05-4DD8-BED8-1C9A0252B27E} = {012B10D5-316D-4753-9F79-37F5A1F6FE27}
 		{78E2E65C-48DA-478E-8B10-BF8216AD20A3} = {012B10D5-316D-4753-9F79-37F5A1F6FE27}
 		{D2415A9E-33F0-48F2-A26A-EF4A2FE0B9EB} = {012B10D5-316D-4753-9F79-37F5A1F6FE27}
+		{911BEB3F-E665-4B71-8DAC-14B745272988} = {012B10D5-316D-4753-9F79-37F5A1F6FE27}
 	EndGlobalSection
 EndGlobal

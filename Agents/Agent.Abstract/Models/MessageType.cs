@@ -1,4 +1,4 @@
-﻿namespace AgentLoader.Models
+﻿namespace Agent.Abstract.Models
 {
     public enum MessageType
     {

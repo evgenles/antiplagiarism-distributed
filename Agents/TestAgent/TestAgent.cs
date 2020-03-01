@@ -2,13 +2,12 @@
 using System.Threading.Tasks;
 using Agent.Abstract;
 using Agent.Abstract.Models;
-using AgentLoader.Models;
 
 namespace TestAgent
 {
     public class TestAgent : AgentAbstract
     {
-        public TestAgent() : base(AgentType.Ui, "", MessageType.TaskStat)
+        public TestAgent() : base(AgentType.Splitter, "", MessageType.Task)
         {
         }
 

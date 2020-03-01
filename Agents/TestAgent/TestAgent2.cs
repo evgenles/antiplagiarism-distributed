@@ -2,13 +2,12 @@
 using System.Threading.Tasks;
 using Agent.Abstract;
 using Agent.Abstract.Models;
-using AgentLoader.Models;
 
 namespace TestAgent
 {
     public class TestAgent2 : AgentAbstract
     {
-        public TestAgent2() : base(AgentType.ConnectionAnalyzer, "", MessageType.Connection)
+        public TestAgent2() : base(AgentType.Worker, "", MessageType.Connection)
         {
         }
 

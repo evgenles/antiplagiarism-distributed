@@ -1,6 +1,5 @@
 ﻿using System.Threading.Tasks;
 using Agent.Abstract.Models;
-using AgentLoader.Models;
 
 namespace Agent.Abstract
 {
