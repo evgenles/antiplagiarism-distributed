@@ -15,6 +15,11 @@ namespace Agent.Abstract.Models
 
         public string Version { get; set; }
 
+        public static implicit operator Author(AgentAbstract agent)
+        {
+            return new Author(agent);
+        } 
+        
         public Author(AgentAbstract agent)
         {
             Type = agent.Type;

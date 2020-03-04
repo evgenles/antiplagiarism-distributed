@@ -8,4 +8,8 @@
       <PackageReference Include="System.Text.Json" Version="4.7.1" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Transport.Abstraction\Transport.Abstraction.csproj" />
+    </ItemGroup>
+
 </Project>

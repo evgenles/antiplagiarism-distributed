@@ -25,7 +25,7 @@ namespace Ui.Server
             _logger = logger;
         }
 
-        public override async Task<bool> ProcessMessageAsync(AgentMessage message)
+        public override async Task<AgentMessage> ProcessMessageAsync(AgentMessage message)
         {
             try
             {
@@ -36,7 +36,7 @@ namespace Ui.Server
                         connectionMessage.Who ??= message.Author;
                         await _agentUiHub.Clients.All.SendAsync(SignalRMessages.AgentConnections.ToString(),
                             connectionMessage);
-                        return true;
+                        return null;
                 }
             }
             catch (Exception e)
@@ -44,7 +44,7 @@ namespace Ui.Server
                 _logger.LogError(e, "Can`t process message");
             }
 
-            return false;
+            return null;
         }
     }
 }

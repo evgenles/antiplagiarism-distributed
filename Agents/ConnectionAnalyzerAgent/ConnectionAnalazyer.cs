@@ -10,18 +10,26 @@ namespace ConnectionAnalyzerAgent
 {
     public class ConnectionAnalyzer : AgentAbstract
     {
-        public List<ConnectionState> Connections = new List<ConnectionState>();
+        public readonly List<ConnectionState> Connections = new List<ConnectionState>();
 
-        public ConnectionAnalyzer() : base(AgentType.ConnectionAnalyzer, "", MessageType.Connection)
+        public ConnectionAnalyzer() : base(AgentType.ConnectionAnalyzer, "", MessageType.Connection, MessageType.RpcRequest)
         {
             Task.Run(CheckConnectionState);
+            Connections.Add(new ConnectionState
+            {
+                State = AgentState.Online,
+                Who = new Author(this),
+                LastUpdate = DateTime.Now
+            });
         }
 
         public async Task CheckConnectionState()
         {
             while (!StoppingToken.IsCancellationRequested)
             {
-                var toRemove = Connections.Where(x => x.State == AgentState.Degrading &&
+                var toRemove = Connections.Where(x =>
+                                                      x.Who.Id != Id &&
+                                                      x.State == AgentState.Degrading &&
                                                       x.LastUpdate < DateTime.Now.AddSeconds(-50))
                     .ToList();
                 foreach (var disconnected in toRemove)
@@ -42,7 +50,10 @@ namespace ConnectionAnalyzerAgent
                 Connections.RemoveAll(x => toRemove.Any(r => r.Who.Id == x.Who.Id));
 
                 var degradedConnections =
-                    Connections.Where(x => x.State != AgentState.Degrading &&  x.LastUpdate < DateTime.Now.AddSeconds(-30));
+                    Connections.Where(x => 
+                        x.Who.Id != Id &&
+                        x.State != AgentState.Degrading &&  
+                        x.LastUpdate < DateTime.Now.AddSeconds(-30));
                 foreach (var degradedConnection in degradedConnections)
                 {
                     degradedConnection.State = AgentState.Degrading;
@@ -63,8 +74,27 @@ namespace ConnectionAnalyzerAgent
             }
         }
 
-        public override Task<bool> ProcessMessageAsync(AgentMessage message)
+        public Task<AgentMessage> GetInfoAsync(AgentMessage<RpcRequest> message)
         {
+            return message.Data.Type switch
+            {
+                RpcRequestType.GetAllAgents => Task.FromResult(new AgentMessage
+                {
+                    Author = new Author(this),
+                    MessageType = MessageType.RpcResponse,
+                    SendDate = DateTime.Now,
+                    Data = Connections.Select(x => new ConnectionMessage {State = x.State, Who = x.Who})
+                }),
+                _ => Task.FromResult<AgentMessage>(null)
+            };
+        }
+        
+        public override Task<AgentMessage> ProcessMessageAsync(AgentMessage message)
+        {
+            if (message.MessageType == MessageType.RpcRequest)
+            {
+                return GetInfoAsync(message.To<RpcRequest>());
+            }
             var data = message.Data.ToObject<ConnectionMessage>();
             var connectionState = new ConnectionState
             {
@@ -90,7 +120,7 @@ namespace ConnectionAnalyzerAgent
                 Connections.Add(connectionState);
             }
 
-            return Task.FromResult(true);
+            return Task.FromResult<AgentMessage>(null);
         }
     }
 }

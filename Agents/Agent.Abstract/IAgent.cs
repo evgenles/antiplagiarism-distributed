@@ -9,7 +9,7 @@ namespace Agent.Abstract
         
         public string SubType { get; }
 
-        public Task<bool> ProcessMessageAsync(AgentMessage message);
+        public Task<AgentMessage> ProcessMessageAsync(AgentMessage message);
         
     }
 }

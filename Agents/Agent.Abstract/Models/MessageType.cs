@@ -3,6 +3,8 @@
     public enum MessageType
     {
         Connection,
+        RpcRequest,
+        RpcResponse,
         Task,
         TaskStat
     }

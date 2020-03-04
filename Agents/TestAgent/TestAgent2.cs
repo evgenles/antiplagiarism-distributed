@@ -7,14 +7,14 @@ namespace TestAgent
 {
     public class TestAgent2 : AgentAbstract
     {
-        public TestAgent2() : base(AgentType.Worker, "", MessageType.Connection)
+        public TestAgent2() : base(AgentType.Worker, "", MessageType.Task)
         {
         }
 
-        public override Task<bool> ProcessMessageAsync(AgentMessage message)
+        public override Task<AgentMessage> ProcessMessageAsync(AgentMessage message)
         {
             Console.WriteLine($"XXX {message.Author.Type} {message.Author.SubType} connected in {message.SendDate}");
-            return Task.FromResult(true);
+            return Task.FromResult<AgentMessage>(null);
         }
     }
 }
