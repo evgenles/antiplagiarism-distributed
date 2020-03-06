@@ -17,6 +17,7 @@ namespace Transport.Kafka
         {
             services.Configure<KafkaConfiguration>(configuration.GetSection("Kafka"));
             services.AddSingleton<ITransportSender, KafkaTransportSender>();
+            services.AddTransient<ITransportConsumer, KafkaTransportConsumer>();
             return services;
         }
     }

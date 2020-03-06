@@ -12,5 +12,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Agent.Abstract\Agent.Abstract.csproj" />
+      <ProjectReference Include="..\Transport.Kafka\Transport.Kafka.csproj" />
     </ItemGroup>
 </Project>

@@ -27,7 +27,8 @@ namespace Ui.Server.Hubs
                 },
                 SendDate = DateTime.Now
             };
-            var result = await _uiAgent.CallAsync(msg, TimeSpan.FromSeconds(30));
+            var result = await _uiAgent.CallAsync<AgentMessage<RpcRequest>, 
+                AgentMessage<List<ConnectionMessage>>>(msg, TimeSpan.FromSeconds(30));
             var recived = DateTime.Now;
             if (result != null)
             {

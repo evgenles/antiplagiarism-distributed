@@ -12,6 +12,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Transport.Abstraction;
+using Transport.Kafka;
 
 namespace AgentLoader
 {
@@ -23,7 +25,7 @@ namespace AgentLoader
             CreateHostBuilder(args).Build().Run();
         }
 
-        private static IEnumerable<AgentAbstract> LoadAgents()
+        private static IEnumerable<Type> LoadAgents()
         {
             var agentsFolder = Path.Combine(Path.GetDirectoryName(typeof(Program).Assembly.Location), "Agents");
             if (Directory.Exists(agentsFolder))
@@ -34,24 +36,31 @@ namespace AgentLoader
                         var assembly = new AgentLoadContext(x).LoadFromAssemblyPath(x);
                         return assembly
                             .GetTypes()
-                            .Where(type => type.IsSubclassOf(typeof(AgentAbstract)))
-                            .Select(type => (AgentAbstract) Activator.CreateInstance(type));
+                            .Where(type => type.IsSubclassOf(typeof(AgentAbstract)));
+                        //  .Select(type => (AgentAbstract) Activator.CreateInstance(type));
                     });
-
             }
-            return new List<AgentAbstract>();
+
+            return new List<Type>();
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
                 .ConfigureServices((hostContext, services) =>
                 {
-                    services.Configure<Configuration>(hostContext.Configuration.GetSection("Conf"));
+                    services.AddKafkaTransport(hostContext.Configuration);
+
                     var agents = LoadAgents().ToList();
+                    // services.TryAddEnumerable(new ServiceDescriptor());
+                    services.TryAddEnumerable(agents.Select(agentType =>
+                        new ServiceDescriptor(typeof(AgentAbstract),
+                            sp =>
+                                Activator.CreateInstance(agentType, 
+                                    sp.GetService<ITransportSender>()),
+                            ServiceLifetime.Singleton)));
                     Console.WriteLine($"Loaded {agents.Count} agent");
 
-                        services.AddHostedService((c)=>new AgentWorker(agents,
-                            c.GetService<IOptions<Configuration>>(), c.GetService<ILogger<AgentWorker>>()));
+                    services.AddHostedService<AgentWorker>();
                 });
     }
 }

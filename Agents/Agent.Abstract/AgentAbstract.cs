@@ -53,8 +53,19 @@ namespace Agent.Abstract
             State = AgentState.Online;
             Task.Run(SendHearthBeat);
         }
-        public abstract Task<AgentMessage> ProcessMessageAsync(AgentMessage message);
 
+        public abstract Task ProcessMessageAsync(AgentMessage message);
+
+        public async Task ProcessRpcAsync(AgentMessage<RpcRequest> message, string responseTo)
+        {
+            var result = await ProcessRpcAsync(message);
+            if (result != null)
+                await Transport.SendAsync(responseTo, result);
+        }
+
+        protected abstract Task<AgentMessage> ProcessRpcAsync(AgentMessage<RpcRequest> message);
+        
+        
         private async Task SendConnectAsync()
         {
             await Transport.SendAsync(MessageType.Connection.ToString(), new AgentMessage

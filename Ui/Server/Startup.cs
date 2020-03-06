@@ -9,6 +9,7 @@ using Agent.Abstract;
 using AgentLoader;
 using AgentLoader.Models;
 using Microsoft.Extensions.Configuration;
+using Transport.Kafka;
 using Ui.Server.Hubs;
 
 namespace Ui.Server
@@ -27,8 +28,7 @@ namespace Ui.Server
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
-            services.Configure<Configuration>(_configuration.GetSection("Conf"));
-            
+            services.AddKafkaTransport(_configuration);
             services.AddSingleton<UiAgent>();
             services.AddSingleton((c) => new List<AgentAbstract> {c.GetService<UiAgent>()});
             services.AddHostedService<AgentWorker>();

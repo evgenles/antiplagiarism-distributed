@@ -6,6 +6,7 @@ using AgentLoader;
 using AgentLoader.Models;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
+using Transport.Abstraction;
 using Ui.Server.Hubs;
 using Ui.Shared;
 
@@ -17,15 +18,21 @@ namespace Ui.Server
         private readonly IHubContext<TaskHub> _taskUiHub;
         private readonly ILogger<UiAgent> _logger;
 
-        public UiAgent(IHubContext<AgentHub> agentUiHub, IHubContext<TaskHub> taskUiHub, ILogger<UiAgent> logger) :
-            base(AgentType.Ui, "", MessageType.Connection, MessageType.TaskStat)
+        public UiAgent(IHubContext<AgentHub> agentUiHub, IHubContext<TaskHub> taskUiHub, ILogger<UiAgent> logger,
+            ITransportSender transportSender) :
+            base(transportSender, AgentType.Ui, "", MessageType.Connection, MessageType.TaskStat)
         {
             _agentUiHub = agentUiHub;
             _taskUiHub = taskUiHub;
             _logger = logger;
         }
 
-        public override async Task<AgentMessage> ProcessMessageAsync(AgentMessage message)
+        public async Task<TResp> CallAsync<TReq, TResp>(TReq msg, TimeSpan timeout)
+        {
+            return await Transport.CallServiceAsync<TReq, TResp>(MessageType.RpcRequest.ToString(), msg, timeout);
+        }
+
+        public override async Task ProcessMessageAsync(AgentMessage message)
         {
             try
             {
@@ -36,15 +43,18 @@ namespace Ui.Server
                         connectionMessage.Who ??= message.Author;
                         await _agentUiHub.Clients.All.SendAsync(SignalRMessages.AgentConnections.ToString(),
                             connectionMessage);
-                        return null;
+                        break;
                 }
             }
             catch (Exception e)
             {
                 _logger.LogError(e, "Can`t process message");
             }
+        }
 
-            return null;
+        protected override Task<AgentMessage> ProcessRpcAsync(AgentMessage<RpcRequest> message)
+        {
+            throw new NotImplementedException();
         }
     }
 }

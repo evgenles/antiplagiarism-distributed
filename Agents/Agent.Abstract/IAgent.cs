@@ -9,7 +9,9 @@ namespace Agent.Abstract
         
         public string SubType { get; }
 
-        public Task<AgentMessage> ProcessMessageAsync(AgentMessage message);
-        
+        public Task ProcessMessageAsync(AgentMessage message);
+
+        public Task ProcessRpcAsync(AgentMessage<RpcRequest> message, string responseTo);
+
     }
 }

@@ -13,19 +13,24 @@ using Confluent.Kafka.Admin;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Transport.Abstraction;
 
 namespace AgentLoader
 {
     public class AgentWorker : BackgroundService
     {
         private readonly List<AgentAbstract> _agents;
+        private readonly ITransportConsumer _consumer;
         private readonly ILogger<AgentWorker> _logger;
         private readonly Configuration _configuration;
 
-        public AgentWorker(List<AgentAbstract> agents, IOptions<Configuration> configuration,
+        public AgentWorker(IEnumerable<AgentAbstract> agents, 
+            ITransportConsumer consumer,
+            IOptions<Configuration> configuration,
             ILogger<AgentWorker> logger)
         {
-            _agents = agents;
+            _agents = agents.ToList();
+            _consumer = consumer;
             _logger = logger;
             _configuration = configuration.Value;
             // foreach (var agent in agents)
@@ -146,24 +151,16 @@ namespace AgentLoader
         private async Task AgentExecutable(AgentAbstract agent, CancellationToken stoppingToken)
         {
             agent.StoppingToken = stoppingToken;
-            var config = new ConsumerConfig()
-            {
-                BootstrapServers = _configuration.KafkaBootstrap,
-                Acks = Acks.Leader,
-                EnableAutoCommit = false,
-                AutoOffsetReset = AutoOffsetReset.Latest,
-                GroupId = agent.Type + "_" + agent.SubType,
-            };
-            var consumer = new ConsumerBuilder<string, string>(config).Build();
-            consumer.Subscribe(agent.SupportedMessage.Select(x => x.ToString()));
-
+            _consumer.Subscribe( agent.Type + "_" + agent.SubType, 
+                agent.SupportedMessage.Select(x => x.ToString())
+                    .ToArray());
   
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    var result = consumer.Consume();
-                    var msg = JsonSerializer.Deserialize<AgentMessage>(result.Message.Value);
+                    var consumeResult = _consumer.Consume<AgentMessage>();
+                    var msg =  consumeResult.Result;
                     if (msg.Author.Id != agent.Id)
                     {
                         if (msg.MessageType == MessageType.RpcRequest)
@@ -172,14 +169,12 @@ namespace AgentLoader
                             if (rpc.Data?.RequestedAgent == agent.Type)
                             {
                                 agent.State = AgentState.InWork;
-                                _logger.LogInformation($"{DateTime.Now} Consumed message {result.Key}, {result.Value}");
-                                var replayToHeader = result.Headers.FirstOrDefault(x => x.Key == "ReplayTo");
+                                _logger.LogInformation($"{DateTime.Now} Consumed rpc request");
+                                var replayToHeader = consumeResult.Headers["ReplayTo"];
                                 if (replayToHeader != null)
                                 {
-                                    var replayTo = Encoding.UTF8.GetString(replayToHeader.GetValueBytes());
-                                    var t = await agent.ProcessMessageAsync(msg);
-                                    await SendMessageAsync(t, replayTo);
-                                    _logger.LogInformation($"{DateTime.Now} Replayed");
+                                   await  agent.ProcessRpcAsync(msg.To<RpcRequest>(), replayToHeader);
+                                    _logger.LogInformation($"{DateTime.Now} Processed");
                                 }
                             }
                         }
@@ -187,12 +182,12 @@ namespace AgentLoader
                         {
                             agent.State = AgentState.InWork;
                             if (msg.MessageType != MessageType.Connection)
-                                _logger.LogInformation($"Consumed message {result.Key}, {result.Value}");
+                                _logger.LogInformation($"Consumed message");
                             await agent.ProcessMessageAsync(msg);
                         }
                     }
 
-                    consumer.Commit();
+                    _consumer.Commit();
                 }
                 catch (Exception e) when (!(e is OperationCanceledException))
                 {

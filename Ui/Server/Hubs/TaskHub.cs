@@ -20,13 +20,13 @@ namespace Ui.Server.Hubs
         
         public async Task AddTask(TaskMessage message)
         {
-            await _agent.SendMessageAsync(new AgentMessage
-            {
-                Author = new Author(_agent),
-                MessageType = MessageType.Task,
-                SendDate = DateTime.Now,
-                Data = message
-            });
+            // await _agent.SendMessageAsync(new AgentMessage
+            // {
+            //     Author = new Author(_agent),
+            //     MessageType = MessageType.Task,
+            //     SendDate = DateTime.Now,
+            //     Data = message
+            // });
             await Clients.All.SendAsync("TaskAdded", message);
         }
     }
