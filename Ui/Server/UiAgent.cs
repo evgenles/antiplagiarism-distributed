@@ -27,9 +27,17 @@ namespace Ui.Server
             _logger = logger;
         }
 
-        public async Task<TResp> CallAsync<TReq, TResp>(TReq msg, TimeSpan timeout)
+        public async Task<TResp> CallAsync<TResp>(AgentMessage msg, TimeSpan timeout)
         {
-            return await Transport.CallServiceAsync<TReq, TResp>(MessageType.RpcRequest.ToString(), msg, timeout);
+            msg.MessageType = MessageType.RpcRequest;
+            return await Transport.CallServiceAsync<AgentMessage, TResp>(MessageType.RpcRequest.ToString(), msg, timeout);
+        }
+        
+        public async Task<AgentMessage<TResp>> CallAsync<TResp>(AgentMessage<RpcRequest> msg, TimeSpan timeout) where TResp : class
+        {
+            msg.MessageType = MessageType.RpcRequest;
+            var resp =  await Transport.CallServiceAsync<AgentMessage<RpcRequest>, AgentMessage>(MessageType.RpcRequest.ToString(), msg, timeout);
+            return resp?.To<TResp>();
         }
 
         public override async Task ProcessMessageAsync(AgentMessage message)

@@ -24,12 +24,12 @@ namespace AgentLoader
         private readonly ILogger<AgentWorker> _logger;
         private readonly Configuration _configuration;
 
-        public AgentWorker(IEnumerable<AgentAbstract> agents, 
+        public AgentWorker(IAgentProvider agentProvider, 
             ITransportConsumer consumer,
             IOptions<Configuration> configuration,
             ILogger<AgentWorker> logger)
         {
-            _agents = agents.ToList();
+            _agents = agentProvider.Agents;
             _consumer = consumer;
             _logger = logger;
             _configuration = configuration.Value;
@@ -160,30 +160,33 @@ namespace AgentLoader
                 try
                 {
                     var consumeResult = _consumer.Consume<AgentMessage>();
-                    var msg =  consumeResult.Result;
-                    if (msg.Author.Id != agent.Id)
+                    if (consumeResult != null)
                     {
-                        if (msg.MessageType == MessageType.RpcRequest)
+                        var msg = consumeResult.Result;
+                        if (msg.Author.Id != agent.Id)
                         {
-                            var rpc = msg.To<RpcRequest>();
-                            if (rpc.Data?.RequestedAgent == agent.Type)
+                            if (msg.MessageType == MessageType.RpcRequest)
                             {
-                                agent.State = AgentState.InWork;
-                                _logger.LogInformation($"{DateTime.Now} Consumed rpc request");
-                                var replayToHeader = consumeResult.Headers["ReplayTo"];
-                                if (replayToHeader != null)
+                                var rpc = msg.To<RpcRequest>();
+                                if (rpc.Data?.RequestedAgent == agent.Type)
                                 {
-                                   await  agent.ProcessRpcAsync(msg.To<RpcRequest>(), replayToHeader);
-                                    _logger.LogInformation($"{DateTime.Now} Processed");
+                                    agent.State = AgentState.InWork;
+                                    _logger.LogInformation($"{DateTime.Now} Consumed rpc request");
+                                    var replayToHeader = consumeResult.Headers["ReplayTo"];
+                                    if (replayToHeader != null)
+                                    {
+                                        await agent.ProcessRpcAsync(msg.To<RpcRequest>(), replayToHeader);
+                                        _logger.LogInformation($"{DateTime.Now} Processed");
+                                    }
                                 }
                             }
-                        }
-                        else
-                        {
-                            agent.State = AgentState.InWork;
-                            if (msg.MessageType != MessageType.Connection)
-                                _logger.LogInformation($"Consumed message");
-                            await agent.ProcessMessageAsync(msg);
+                            else
+                            {
+                                agent.State = AgentState.InWork;
+                                if (msg.MessageType != MessageType.Connection)
+                                    _logger.LogInformation($"Consumed message");
+                                await agent.ProcessMessageAsync(msg);
+                            }
                         }
                     }
 

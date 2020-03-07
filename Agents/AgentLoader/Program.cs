@@ -19,30 +19,30 @@ namespace AgentLoader
 {
     public class Program
     {
+        private static readonly List<AgentAssemblyLoaderContext> AgentContexts = new List<AgentAssemblyLoaderContext>();
+
         public static void Main(string[] args)
         {
             Console.WriteLine($"PID: {Process.GetCurrentProcess().Id}");
-            CreateHostBuilder(args).Build().Run();
-        }
-
-        private static IEnumerable<Type> LoadAgents()
-        {
             var agentsFolder = Path.Combine(Path.GetDirectoryName(typeof(Program).Assembly.Location), "Agents");
             if (Directory.Exists(agentsFolder))
             {
-                return Directory.GetFiles(agentsFolder, "*Agent.dll")
-                    .SelectMany(x =>
-                    {
-                        var assembly = new AgentLoadContext(x).LoadFromAssemblyPath(x);
-                        return assembly
-                            .GetTypes()
-                            .Where(type => type.IsSubclassOf(typeof(AgentAbstract)));
-                        //  .Select(type => (AgentAbstract) Activator.CreateInstance(type));
-                    });
+                foreach (var directory in Directory.GetDirectories(agentsFolder))
+                {
+                    AgentContexts.Add(new AgentAssemblyLoaderContext(directory,
+                        typeof(AgentAbstract)));
+                }
+                if(AgentContexts.Count == 0)
+                    throw new ArgumentException("Can`t load any agent context in `Agents\\*` directory");
+            }
+            else
+            {
+                throw new ArgumentException("Can`t find folder `Agents`");
             }
 
-            return new List<Type>();
+            CreateHostBuilder(args).Build().Run();
         }
+
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
@@ -50,15 +50,15 @@ namespace AgentLoader
                 {
                     services.AddKafkaTransport(hostContext.Configuration);
 
-                    var agents = LoadAgents().ToList();
-                    // services.TryAddEnumerable(new ServiceDescriptor());
-                    services.TryAddEnumerable(agents.Select(agentType =>
-                        new ServiceDescriptor(typeof(AgentAbstract),
-                            sp =>
-                                Activator.CreateInstance(agentType, 
-                                    sp.GetService<ITransportSender>()),
-                            ServiceLifetime.Singleton)));
-                    Console.WriteLine($"Loaded {agents.Count} agent");
+                    var agents = AgentAssemblyLoaderContext.AgentTypes;
+                    agents.ForEach(type => services.AddTransient(type));
+                    services.AddSingleton<IAgentProvider, AgentProvider>();
+                    // services.TryAddEnumerable(agents.Select(agentType =>
+                    //     ServiceDescriptor.Singleton<AgentAbstract>(
+                    //         sp =>
+                    //             Activator.CreateInstance(agentType, 
+                    //                 sp.GetService<ITransportSender>()))));
+                    Console.WriteLine($"Loaded {agents.Count} agent in {AgentContexts.Count} context");
 
                     services.AddHostedService<AgentWorker>();
                 });

@@ -30,12 +30,15 @@ namespace Transport.Kafka
             {
                 var config = new ProducerConfig {BootstrapServers = _kafkaConfiguration.Bootstrap};
 
+                var kHeaders = new Headers();
+                headers?.Select(x => new Header(x.Key, Encoding.UTF8.GetBytes(x.Value)))
+                    .ToList()
+                    .ForEach(x=>kHeaders.Add(x));
                 using var producer = new ProducerBuilder<string, string>(config).Build();
                 await producer.ProduceAsync(receiver, new Message<string, string>()
                 {
-                    Value = JsonSerializer.Serialize(data),
-                    Headers =
-                        headers.Select(x => (IHeader) new Header(x.Key, Encoding.UTF8.GetBytes(x.Value))) as Headers
+                    Value = data,
+                    Headers = kHeaders
                 });
 
                 producer.Flush(TimeSpan.FromSeconds(10));
@@ -92,7 +95,7 @@ namespace Transport.Kafka
                 _logger.LogInformation($"{DateTime.Now} Consumed rpc response");
 
                 consumer.Unsubscribe();
-                return response.Message?.Value;
+                return response?.Message?.Value;
             }
             catch (Exception e)
             {
@@ -139,5 +142,7 @@ namespace Transport.Kafka
 
             return default;
         }
+        
+        
     }
 }

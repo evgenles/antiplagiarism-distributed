@@ -30,7 +30,7 @@ namespace Ui.Server
             services.AddMvc();
             services.AddKafkaTransport(_configuration);
             services.AddSingleton<UiAgent>();
-            services.AddSingleton((c) => new List<AgentAbstract> {c.GetService<UiAgent>()});
+            services.AddSingleton<IAgentProvider>((sp)=> new AgentProvider(sp, typeof(UiAgent)));
             services.AddHostedService<AgentWorker>();
 
             services.AddSignalR();

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.Json.Serialization;
 
 namespace Agent.Abstract.Models
 {
@@ -26,6 +27,7 @@ namespace Agent.Abstract.Models
 
     public class AgentMessage<T> : AgentMessage where T : class
     {
+        [JsonIgnore]
         public new T Data { get=> base.Data as T; set=> base.Data = value; }
     }
 }

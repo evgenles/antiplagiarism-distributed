@@ -53,6 +53,7 @@
             StateHasChanged();
         });
 
+        _hubConnection.On<List<ConnectionMessage>>("ConnectAccepted", (msg) => connectionMessages = msg);
         await _hubConnection.StartAsync();
     }
 

@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using Confluent.Kafka;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Transport.Abstraction;
 
@@ -10,11 +11,13 @@ namespace Transport.Kafka
 {
     public class KafkaTransportConsumer : ITransportConsumer
     {
+        private readonly ILogger<KafkaTransportConsumer> _logger;
         private readonly KafkaConfiguration _configuration;
         private IConsumer<string, string> _consumer;
 
-        public KafkaTransportConsumer(IOptions<KafkaConfiguration> options)
+        public KafkaTransportConsumer(IOptions<KafkaConfiguration> options, ILogger<KafkaTransportConsumer> logger)
         {
+            _logger = logger;
             _configuration = options.Value;
         }
 
@@ -29,6 +32,7 @@ namespace Transport.Kafka
                 GroupId = id,
             };
             _consumer = new ConsumerBuilder<string, string>(config).Build();
+            _consumer.Subscribe(queueTopic);
         }
 
         public ConsumeResult<string> Consume()
@@ -56,11 +60,20 @@ namespace Transport.Kafka
         public ConsumeResult<T> Consume<T>()
         {
             var strResult = Consume();
-            return new ConsumeResult<T>
+            try
             {
-                Headers = strResult.Headers,
-                Result = JsonSerializer.Deserialize<T>(strResult.Result)
-            };
+                return new ConsumeResult<T>
+                {
+                    Headers = strResult.Headers,
+                    Result = JsonSerializer.Deserialize<T>(strResult.Result)
+                };
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, $"Can`t parse message {strResult.Result}");
+            }
+
+            return null;
         }
 
         public ConsumeResult<T> Consume<T>(TimeSpan timeout)
