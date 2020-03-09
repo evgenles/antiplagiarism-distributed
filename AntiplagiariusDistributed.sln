@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Transport.Abstraction", "Ag
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Transport.Kafka", "Agents\Transport.Kafka\Transport.Kafka.csproj", "{37DA2685-66AF-42E0-892D-2C3B7AA2D8E5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Transport.KubeMq", "Agents\Transport.KubeMq\Transport.KubeMq.csproj", "{BA40C825-D577-4F53-AD05-8E58EEBFE94E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -71,6 +73,10 @@ Global
 		{37DA2685-66AF-42E0-892D-2C3B7AA2D8E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{37DA2685-66AF-42E0-892D-2C3B7AA2D8E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{37DA2685-66AF-42E0-892D-2C3B7AA2D8E5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BA40C825-D577-4F53-AD05-8E58EEBFE94E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA40C825-D577-4F53-AD05-8E58EEBFE94E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA40C825-D577-4F53-AD05-8E58EEBFE94E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA40C825-D577-4F53-AD05-8E58EEBFE94E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -85,5 +91,6 @@ Global
 		{911BEB3F-E665-4B71-8DAC-14B745272988} = {012B10D5-316D-4753-9F79-37F5A1F6FE27}
 		{A35FAECB-C3B0-4500-9DC7-FD6C6A3CFEFB} = {012B10D5-316D-4753-9F79-37F5A1F6FE27}
 		{37DA2685-66AF-42E0-892D-2C3B7AA2D8E5} = {012B10D5-316D-4753-9F79-37F5A1F6FE27}
+		{BA40C825-D577-4F53-AD05-8E58EEBFE94E} = {012B10D5-316D-4753-9F79-37F5A1F6FE27}
 	EndGlobalSection
 EndGlobal

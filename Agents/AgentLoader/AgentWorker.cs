@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Agent.Abstract;
@@ -24,7 +25,7 @@ namespace AgentLoader
         private readonly ILogger<AgentWorker> _logger;
         private readonly Configuration _configuration;
 
-        public AgentWorker(IAgentProvider agentProvider, 
+        public AgentWorker(IAgentProvider agentProvider,
             ITransportConsumer consumer,
             IOptions<Configuration> configuration,
             ILogger<AgentWorker> logger)
@@ -148,57 +149,47 @@ namespace AgentLoader
         }
 
 
-        private async Task AgentExecutable(AgentAbstract agent, CancellationToken stoppingToken)
+        private void AgentExecutable(AgentAbstract agent, CancellationToken stoppingToken)
         {
             agent.StoppingToken = stoppingToken;
-            _consumer.Subscribe( agent.Type + "_" + agent.SubType, 
-                agent.SupportedMessage.Select(x => x.ToString())
-                    .ToArray());
-  
-            while (!stoppingToken.IsCancellationRequested)
+            var agentSupported = agent.SupportedMessage.Select(x => x.ToString())
+                .ToArray();
+            _consumer.Subscribe(agent.Type + "_" + agent.SubType, agent.RpcMessageType.ToString(), stoppingToken,
+                agentSupported
+            );
+            _consumer.OnConsumed += async (result, topic) =>
+            {
+                if (agentSupported.Contains(topic))
+                {
+                    var msg = JsonSerializer.Deserialize<AgentMessage>(result);
+                    if (msg.Author.Id != agent.Id)
+                    {
+                        agent.State = AgentState.InWork;
+                        if (msg.MessageType != MessageType.Connection)
+                            _logger.LogInformation($"Consumed message");
+                        await agent.ProcessMessageAsync(msg);
+                        agent.State = AgentState.Online;
+                    }
+                }
+            };
+            _consumer.OnRpcRequest += async (result, topic) =>
             {
                 try
                 {
-                    var consumeResult = _consumer.Consume<AgentMessage>();
-                    if (consumeResult != null)
+                    if (agent.RpcMessageType.ToString() == topic)
                     {
-                        var msg = consumeResult.Result;
-                        if (msg.Author.Id != agent.Id)
-                        {
-                            if (msg.MessageType == MessageType.RpcRequest)
-                            {
-                                var rpc = msg.To<RpcRequest>();
-                                if (rpc.Data?.RequestedAgent == agent.Type)
-                                {
-                                    agent.State = AgentState.InWork;
-                                    _logger.LogInformation($"{DateTime.Now} Consumed rpc request");
-                                    var replayToHeader = consumeResult.Headers["ReplayTo"];
-                                    if (replayToHeader != null)
-                                    {
-                                        await agent.ProcessRpcAsync(msg.To<RpcRequest>(), replayToHeader);
-                                        _logger.LogInformation($"{DateTime.Now} Processed");
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                agent.State = AgentState.InWork;
-                                if (msg.MessageType != MessageType.Connection)
-                                    _logger.LogInformation($"Consumed message");
-                                await agent.ProcessMessageAsync(msg);
-                            }
-                        }
+                        return JsonSerializer.Serialize(
+                            await agent.ProcessRpcAsync(JsonSerializer.Deserialize<AgentMessage>(result)
+                                .To<RpcRequest>()));
                     }
-
-                    _consumer.Commit();
                 }
-                catch (Exception e) when (!(e is OperationCanceledException))
+                catch (Exception e)
                 {
-                    Console.WriteLine(e);
+                    _logger.LogError($"Can`t process rpc from {topic} by agent {agent}, msg: {result}");
                 }
 
-                agent.State = AgentState.Online;
-            }
+                return null;
+            };
         }
     }
 }

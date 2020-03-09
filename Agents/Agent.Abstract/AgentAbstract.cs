@@ -12,22 +12,24 @@ namespace Agent.Abstract
     public abstract class AgentAbstract : IAgent, IDisposable
     {
         protected ITransportSender Transport { get; }
-        public virtual AgentType Type { get;}
-        
+        public virtual AgentType Type { get; }
+
+        public virtual MessageType RpcMessageType { get; }
+
         public virtual MessageType[] SupportedMessage { get; }
-        
-        public virtual string SubType { get;}
-        
+
+        public virtual string SubType { get; }
+
         public string Version { get; }
-        
+
         public string Ip { get; }
-        
+
         public string MachineName { get; }
 
         public Guid Id { get; }
-        
+
         public AgentState State { get; set; }
-        
+
         // public Func<AgentMessage, Task> SendMessageAsync { get; set; }
         //
         // /// <summary>
@@ -37,17 +39,19 @@ namespace Agent.Abstract
         //
 
         public CancellationToken StoppingToken { get; set; } = CancellationToken.None;
-        
-        protected AgentAbstract(ITransportSender transport, AgentType type, string subType = "", params  MessageType[] supportedMessage)
+
+        protected AgentAbstract(ITransportSender transport, AgentType type, string subType = "",
+            MessageType rpcType = MessageType.RpcRequest, params MessageType[] supportedMessage)
         {
             Transport = transport;
             Type = type;
+            RpcMessageType = rpcType;
             SubType = subType;
             MachineName = Environment.MachineName;
             Version = GetType().Assembly.GetName().Version.ToString();
-            Ip = string.Join(", " ,Dns.GetHostAddresses(Dns.GetHostName())
-                .Where(x=>x.AddressFamily == AddressFamily.InterNetwork)
-                .Select(x=>x.ToString()));
+            Ip = string.Join(", ", Dns.GetHostAddresses(Dns.GetHostName())
+                .Where(x => x.AddressFamily == AddressFamily.InterNetwork)
+                .Select(x => x.ToString()));
             SupportedMessage = supportedMessage;
             Id = Guid.NewGuid();
             State = AgentState.Online;
@@ -56,16 +60,16 @@ namespace Agent.Abstract
 
         public abstract Task ProcessMessageAsync(AgentMessage message);
 
-        public async Task ProcessRpcAsync(AgentMessage<RpcRequest> message, string responseTo)
-        {
-            var result = await ProcessRpcAsync(message);
-            if (result != null)
-                await Transport.SendAsync(responseTo, result);
-        }
+        // public async Task ProcessRpcAsync(AgentMessage<RpcRequest> message, string responseTo)
+        // {
+        //     var result = await ProcessRpcAsync(message);
+        //     if (result != null)
+        //         await Transport.SendAsync(responseTo, result);
+        // }
 
-        protected abstract Task<AgentMessage> ProcessRpcAsync(AgentMessage<RpcRequest> message);
-        
-        
+        public abstract Task<AgentMessage> ProcessRpcAsync(AgentMessage<RpcRequest> message);
+
+
         private async Task SendConnectAsync()
         {
             await Transport.SendAsync(MessageType.Connection.ToString(), new AgentMessage
@@ -79,7 +83,7 @@ namespace Agent.Abstract
                 SendDate = DateTime.Now
             });
         }
-        
+
         private async Task SendHearthBeat()
         {
             await SendConnectAsync();
@@ -98,9 +102,10 @@ namespace Agent.Abstract
                 });
             }
         }
+
         private async Task SendDisconnectAsync()
         {
-            await Transport.SendAsync(MessageType.Connection.ToString(),new AgentMessage
+            await Transport.SendAsync(MessageType.Connection.ToString(), new AgentMessage
             {
                 Author = this,
                 Data = new ConnectionMessage

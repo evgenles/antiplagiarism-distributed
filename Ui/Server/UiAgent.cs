@@ -20,7 +20,7 @@ namespace Ui.Server
 
         public UiAgent(IHubContext<AgentHub> agentUiHub, IHubContext<TaskHub> taskUiHub, ILogger<UiAgent> logger,
             ITransportSender transportSender) :
-            base(transportSender, AgentType.Ui, "", MessageType.Connection, MessageType.TaskStat)
+            base(transportSender, AgentType.Ui, "", MessageType.RpcRequest, MessageType.Connection, MessageType.TaskStat)
         {
             _agentUiHub = agentUiHub;
             _taskUiHub = taskUiHub;
@@ -60,7 +60,7 @@ namespace Ui.Server
             }
         }
 
-        protected override Task<AgentMessage> ProcessRpcAsync(AgentMessage<RpcRequest> message)
+        public override Task<AgentMessage> ProcessRpcAsync(AgentMessage<RpcRequest> message)
         {
             throw new NotImplementedException();
         }

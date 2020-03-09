@@ -11,7 +11,7 @@ namespace Agent.Abstract
 
         public Task ProcessMessageAsync(AgentMessage message);
 
-        public Task ProcessRpcAsync(AgentMessage<RpcRequest> message, string responseTo);
+        public Task<AgentMessage> ProcessRpcAsync(AgentMessage<RpcRequest> message);
 
     }
 }
