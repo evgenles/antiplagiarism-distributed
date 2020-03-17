@@ -2,10 +2,14 @@
 {
     public enum MessageType
     {
+        Unknown,
         Connection,
-        RpcRequest,
+        ConnectionRequest,
         RpcResponse,
         Task,
-        TaskStat
+        TaskRequest,
+        TaskStat,
+        TaskStatRequest,
+
     }
 }

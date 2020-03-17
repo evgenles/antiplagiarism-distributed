@@ -14,7 +14,7 @@ namespace ConnectionAnalyzerAgent
         public readonly List<ConnectionState> Connections = new List<ConnectionState>();
 
         public ConnectionAnalyzer(ITransportSender sender) : base(sender,
-            AgentType.ConnectionAnalyzer, "", MessageType.Connection, MessageType.RpcRequest)
+            AgentType.ConnectionAnalyzer, "", MessageType.ConnectionRequest, MessageType.Connection)
         {
             Task.Run(CheckConnectionState);
             Connections.Add(new ConnectionState
@@ -78,7 +78,7 @@ namespace ConnectionAnalyzerAgent
             }
         }
 
-        protected override Task<AgentMessage> ProcessRpcAsync(AgentMessage<RpcRequest> message)
+        public override Task<AgentMessage> ProcessRpcAsync(AgentMessage<RpcRequest> message)
         {
            return message.Data.Type switch
             {

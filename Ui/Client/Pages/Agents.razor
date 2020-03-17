@@ -53,7 +53,11 @@
             StateHasChanged();
         });
 
-        _hubConnection.On<List<ConnectionMessage>>("ConnectAccepted", (msg) => connectionMessages = msg);
+        _hubConnection.On<List<ConnectionMessage>>("ConnectAccepted", (msg) =>
+        {
+            connectionMessages = msg;
+            StateHasChanged();
+        });
         await _hubConnection.StartAsync();
     }
 

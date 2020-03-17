@@ -10,6 +10,7 @@ using AgentLoader;
 using AgentLoader.Models;
 using Microsoft.Extensions.Configuration;
 using Transport.Kafka;
+using Transport.KubeMq;
 using Ui.Server.Hubs;
 
 namespace Ui.Server
@@ -28,7 +29,8 @@ namespace Ui.Server
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
-            services.AddKafkaTransport(_configuration);
+            services.AddKubeMqTransport();
+            //services.AddKafkaTransport(_configuration);
             services.AddSingleton<UiAgent>();
             services.AddSingleton<IAgentProvider>((sp)=> new AgentProvider(sp, typeof(UiAgent)));
             services.AddHostedService<AgentWorker>();

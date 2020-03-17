@@ -8,7 +8,7 @@ namespace TestAgent
 {
     public class TestAgent2 : AgentAbstract
     {
-        public TestAgent2(ITransportSender transportSender) : base(transportSender, AgentType.Worker, "", MessageType.Task)
+        public TestAgent2(ITransportSender transportSender) : base(transportSender, AgentType.Worker, "", MessageType.TaskRequest, MessageType.Task)
         {
         }
 
@@ -18,7 +18,7 @@ namespace TestAgent
             return Task.FromResult<AgentMessage>(null);
         }
 
-        protected override Task<AgentMessage> ProcessRpcAsync(AgentMessage<RpcRequest> message)
+        public override Task<AgentMessage> ProcessRpcAsync(AgentMessage<RpcRequest> message)
         {
             throw new NotImplementedException();
         }
