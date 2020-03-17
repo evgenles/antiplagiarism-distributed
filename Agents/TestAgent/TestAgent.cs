@@ -9,7 +9,7 @@ namespace TestAgent
     public class TestAgent : AgentAbstract
     {
         public TestAgent(ITransportSender transportSender) : base(transportSender, 
-            AgentType.Splitter, "", MessageType.RpcRequest, MessageType.Task)
+            AgentType.Splitter, "", MessageType.TaskRequest, MessageType.Task)
         {
         }
 

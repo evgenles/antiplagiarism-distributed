@@ -41,7 +41,7 @@ namespace Agent.Abstract
         public CancellationToken StoppingToken { get; set; } = CancellationToken.None;
 
         protected AgentAbstract(ITransportSender transport, AgentType type, string subType = "",
-            MessageType rpcType = MessageType.RpcRequest, params MessageType[] supportedMessage)
+            MessageType rpcType = MessageType.Unknown, params MessageType[] supportedMessage)
         {
             Transport = transport;
             Type = type;

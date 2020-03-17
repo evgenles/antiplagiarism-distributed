@@ -3,6 +3,8 @@ using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
+using System.Threading.Tasks;
+using KubeMQ.SDK.csharp.CommandQuery;
 using KubeMQ.SDK.csharp.Events;
 using KubeMQ.SDK.csharp.Subscription;
 using Microsoft.Extensions.Logging;
@@ -36,6 +38,35 @@ namespace Transport.KubeMq
             }
         }
 
+        private Response HandleRpcRequest(RequestReceive eventReceive, string id)
+        {
+            try
+            {
+                var result = OnRpcRequest(Encoding.UTF8.GetString(eventReceive.Body), eventReceive.Channel)
+                    .ConfigureAwait(false)
+                    .GetAwaiter()
+                    .GetResult();
+                return new Response(eventReceive)
+                {
+                    Body = Encoding.UTF8.GetBytes(result),
+                    CacheHit = false,
+                    ClientID = $"{id}{Guid.NewGuid()}",
+                    Error = "",
+                    Executed = true,
+                    Timestamp = DateTime.Now
+                };
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Can`t process incoming event");
+                return new Response(eventReceive)
+                {
+                    Error = e.ToString(),
+                    ClientID = $"{id}{Guid.NewGuid()}",
+                    Body = new byte[0]
+                };
+            }
+        }
 
         public void Subscribe(string id, string rpcQueueTopic, params string[] queueTopic)
         {
@@ -45,12 +76,26 @@ namespace Transport.KubeMq
         public void Subscribe(string id, string rpcQueueTopic, CancellationToken cancellationToken,
             params string[] queueTopic)
         {
-            Subscriber subscriber = new Subscriber();
-            foreach (var channel in queueTopic)
+            try
             {
-                SubscribeRequest subscribeRequest = new SubscribeRequest(SubscribeType.Events,
-                    $"{id}{Guid.NewGuid()}", channel, EventsStoreType.Undefined, 0, id);
-                subscriber.SubscribeToEvents(subscribeRequest, HandleIncomingEvents, ErrorDelegate, cancellationToken);
+                Subscriber subscriber = new Subscriber();
+                foreach (var channel in queueTopic)
+                {
+                    SubscribeRequest subscribeRequest = new SubscribeRequest(SubscribeType.Events,
+                        $"{id}{Guid.NewGuid()}", channel, EventsStoreType.Undefined, 0, id);
+                    subscriber.SubscribeToEvents(subscribeRequest, HandleIncomingEvents, ErrorDelegate,
+                        cancellationToken);
+                }
+
+                Responder responder = new Responder();
+                SubscribeRequest rpcSubscribeRequest = new SubscribeRequest(SubscribeType.Queries,
+                    $"{id}{Guid.NewGuid()}", rpcQueueTopic, EventsStoreType.Undefined, 0, id);
+                responder.SubscribeToRequests(rpcSubscribeRequest, (request) => HandleRpcRequest(request, id),
+                    ErrorDelegate, cancellationToken);
+            }
+            catch (Exception e)
+            {
+               _logger.LogError(e, "Can`t subscribe to events");
             }
         }
 

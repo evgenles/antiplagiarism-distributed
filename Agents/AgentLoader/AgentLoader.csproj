@@ -13,5 +13,6 @@
     <ItemGroup>
       <ProjectReference Include="..\Agent.Abstract\Agent.Abstract.csproj" />
       <ProjectReference Include="..\Transport.Kafka\Transport.Kafka.csproj" />
+      <ProjectReference Include="..\Transport.KubeMq\Transport.KubeMq.csproj" />
     </ItemGroup>
 </Project>

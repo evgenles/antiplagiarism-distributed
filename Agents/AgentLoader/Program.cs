@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Transport.Abstraction;
 using Transport.Kafka;
+using Transport.KubeMq;
 
 namespace AgentLoader
 {
@@ -48,7 +49,8 @@ namespace AgentLoader
             Host.CreateDefaultBuilder(args)
                 .ConfigureServices((hostContext, services) =>
                 {
-                    services.AddKafkaTransport(hostContext.Configuration);
+                    services.AddKubeMqTransport();
+                    //services.AddKafkaTransport(hostContext.Configuration);
 
                     var agents = AgentAssemblyLoaderContext.AgentTypes;
                     agents.ForEach(type => services.AddTransient(type));

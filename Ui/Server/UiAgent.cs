@@ -20,7 +20,7 @@ namespace Ui.Server
 
         public UiAgent(IHubContext<AgentHub> agentUiHub, IHubContext<TaskHub> taskUiHub, ILogger<UiAgent> logger,
             ITransportSender transportSender) :
-            base(transportSender, AgentType.Ui, "", MessageType.RpcRequest, MessageType.Connection, MessageType.TaskStat)
+            base(transportSender, AgentType.Ui, "", MessageType.Unknown, MessageType.Connection, MessageType.TaskStat)
         {
             _agentUiHub = agentUiHub;
             _taskUiHub = taskUiHub;
@@ -29,15 +29,16 @@ namespace Ui.Server
 
         public async Task<TResp> CallAsync<TResp>(AgentMessage msg, TimeSpan timeout)
         {
-            msg.MessageType = MessageType.RpcRequest;
-            return await Transport.CallServiceAsync<AgentMessage, TResp>(MessageType.RpcRequest.ToString(), msg, timeout);
+        //    msg.MessageType = MessageType.RpcRequest;
+            return await Transport.CallServiceAsync<AgentMessage, TResp>(msg.MessageType.ToString(), msg, timeout);
         }
         
         public async Task<AgentMessage<TResp>> CallAsync<TResp>(AgentMessage<RpcRequest> msg, TimeSpan timeout) where TResp : class
         {
-            msg.MessageType = MessageType.RpcRequest;
-            var resp =  await Transport.CallServiceAsync<AgentMessage<RpcRequest>, AgentMessage>(MessageType.RpcRequest.ToString(), msg, timeout);
-            return resp?.To<TResp>();
+          //  msg.MessageType = MessageType.RpcRequest;
+            var resp =  await Transport.CallServiceAsync<AgentMessage<RpcRequest>, AgentMessage>(MessageType.ConnectionRequest.ToString(), msg, timeout);
+           //AgentMessage<RpcRequest> resp = null; 
+           return resp?.To<TResp>();
         }
 
         public override async Task ProcessMessageAsync(AgentMessage message)

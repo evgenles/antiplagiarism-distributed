@@ -83,7 +83,7 @@ namespace Transport.Kafka
                         {
                             foreach (var inv in OnRpcRequest.GetInvocationList())
                             {
-                                var result = await OnRpcRequest(msg.Value, msg.Topic);
+                                var result = await (Task<string>)inv.DynamicInvoke(msg.Value, msg.Topic);
                                 if (result != null)
                                 {
                                     await _transportSender.SendAsync(Encoding.UTF8.GetString(replayToHeader), result);
