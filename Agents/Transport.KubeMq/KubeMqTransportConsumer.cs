@@ -78,7 +78,7 @@ namespace Transport.KubeMq
         {
             try
             {
-                Subscriber subscriber = new Subscriber();
+                Subscriber subscriber = new Subscriber(_logger);
                 foreach (var channel in queueTopic)
                 {
                     SubscribeRequest subscribeRequest = new SubscribeRequest(SubscribeType.Events,
