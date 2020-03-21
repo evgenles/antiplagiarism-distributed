@@ -180,4 +180,7 @@ app {
         /* Never collapse the sidebar for wide screens */
         display: block;
     }
+    .ui-tree-toggler {
+        z-index: 1;
+    }
 }

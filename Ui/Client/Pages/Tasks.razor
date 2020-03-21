@@ -1,23 +1,123 @@
 ﻿@page "/tasks"
-@using BlazorInputFile
+@using Radzen
+@using Ui.Shared
 
-<InputFile OnChange="HandleFileSelected" />
-<h1>Counter</h1>
+<div class="row">
+    <div class="col-md-6" style="margin-bottom: 16px">
+        <h2 class="text-center">Task List</h2>
 
-<p>Current count: @currentCount</p>
+        <RadzenTree Data="@taskMessages" Expand="@Expand" Change="@Change"
+                    Style="width: 100%">
+            <RadzenTreeLevel TextProperty="Name" ChildrenProperty="Children">
+                <Template>
+                    @{
+                        var task = context.Value as TaskWithSubTasks;
+                        string grad = (int) task.ProcessPercentage != 0 ? $"background: linear-gradient(90deg, #47c8b075 0%, #47c8b075 {(int) task.ProcessPercentage}%, transparent {(int) task.ProcessPercentage + 5}%);" : "";
+                        var style = $"width: 98%;{grad}";
+                    }
+                    <div class="row" style="@style">
+                        <div class="col-sm-8" style="word-break: break-all;word-wrap: break-word">@task.Name</div>
+                        <div class="col-sm-4">@task.StartDate</div>
+                    </div>
+                </Template>
+            </RadzenTreeLevel>
+            <RadzenTreeLevel TextProperty="Name" HasChildren="@((task) => false)">
+                <Template>
+                    @{
+                        var task = context.Value as TaskWithSubTasks;
+                        string grad = (int) task.ProcessPercentage != 0 ? $"background: linear-gradient(90deg, #47c8b075 0%, #47c8b075 {(int) task.ProcessPercentage}%, transparent {(int) task.ProcessPercentage + 5}%);" : "";
+                        var style = $"width: 98%;margin-left:0;{grad}";
+                    }
+                    <div class="row" style="@style">
+                        <div class="col-sm-8" style="word-break: break-all;word-wrap: break-word">@task.Name</div>
+                        <div class="col-sm-4">@task.StartDate</div>
+                    </div>
+                </Template>
+            </RadzenTreeLevel>
+        </RadzenTree>
+    </div>
+    <div class="col-md-6" style="margin-bottom: 16px">
+        <RadzenCard style="overflow: auto;height:500px;width: 35%; position: fixed; justify-content: space-between;">
+            <div>
 
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+                <h2 class="text-center">Task Info</h2>
+                @if (selectedTask == null)
+                {
+                    <h4>Task is not selected</h4>
+                }
+                else
+                {
+                    <div class="table table-responsive">
+                        <div class="row" style="width: 99%">
+                            <div class="col-sm">Name: </div>
+                            <div class="col-sm">@selectedTask?.Name</div>
+                        </div>
+                        <div class="row" style="width: 99%">
+                            <div class="col-sm">Start time: </div>
+                            <div class="col-sm">@selectedTask?.StartDate</div>
+                        </div>
+                        <div class="row" style="width: 99%">
+                            <div class="col-sm">Creator: </div>
+                            <div class="col-sm">@selectedTask?.Creator</div>
+                        </div>
+                        @if (selectedTask?.RequiredSubtype != null)
+                        {
+                            <div class="row" style="width: 99%">
+                                <div class="col-sm">Required sub types </div>
+                                <div class="col-sm">@string.Join(", ", selectedTask.RequiredSubtype)</div>
+                            </div>
+                        }
+                        <div class="row" style="width: 99%">
+                            <div class="col-sm">Current percentage: </div>
+                            <div class="col-sm">@selectedTask?.ProcessPercentage %</div>
+                        </div>
+                        @if (Math.Abs((selectedTask?.ProcessPercentage ?? 0) - 100) < 0.0001)
+                        {
+                            <div class="row" style="width: 99%">
+                                <div class="col-sm">Unique percentage: </div>
+                                <div class="col-sm">@selectedTask?.UniquePercentage %</div>
+                            </div>
+                            <div class="row" style="width: 99%">
+                                <div class="col-sm">Error percentage: </div>
+                                <div class="col-sm">@selectedTask?.ErrorPercentage %</div>
+                            </div>
+                            <div class="row justify-content-center" style="width: 99%;margin-top: 10px">
+                                <button class="btn btn-outline-info" >Detailed report</button>
+                            </div>
+                        }
+
+                    </div>
+                }
+            </div>
+            <div class="row justify-content-between">
+                <button class="col col-md-6 btn btn-info">Create task</button>
+                <button class="col col-md-5 btn btn-danger">Delete</button>
+            </div>
+        </RadzenCard>
+    </div>
+</div>
 
 @code {
-    void HandleFileSelected(IFileListEntry[] files)
-    {
-    // Do something with the files, e.g., read them
-    }
-    
-    private int currentCount = 0;
 
-    private void IncrementCount()
+    private List<TaskWithSubTasks> taskMessages = new List<TaskWithSubTasks>();
+
+    TaskWithSubTasks selectedTask = null;
+
+    void Change(TreeEventArgs args)
     {
-        currentCount++;
+        if (args.Value is TaskWithSubTasks task)
+        {
+            selectedTask = task;
+        }
     }
+
+    void Expand(TreeExpandEventArgs args)
+    {
+        if (args.Value is TaskWithSubTasks task)
+        {
+            selectedTask = task;
+        }
+    }
+
+
 }

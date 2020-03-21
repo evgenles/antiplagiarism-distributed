@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading.Tasks;
 using System.Text;
 using Microsoft.AspNetCore.Blazor.Hosting;
@@ -12,8 +13,14 @@ namespace Ui.Client
         public static async Task Main(string[] args)
         {
             var builder = WebAssemblyHostBuilder.CreateDefault(args);
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("uk-UA");
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("uk-UA");
+            CultureInfo.DefaultThreadCurrentCulture  = CultureInfo.GetCultureInfo("uk-UA");
+            CultureInfo.DefaultThreadCurrentCulture  = CultureInfo.GetCultureInfo("uk-UA");
+
             builder.RootComponents.Add<App>("app");
-            await builder.Build().RunAsync();
+            var host = builder.Build();
+            await host.RunAsync();
         }
     }
 }
