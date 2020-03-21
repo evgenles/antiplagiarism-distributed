@@ -6,8 +6,9 @@
         Connection,
         ConnectionRequest,
         RpcResponse,
-        Task,
+        SplitterTask,
         TaskRequest,
+        WorkerTask,
         TaskStat,
         TaskStatRequest,
 

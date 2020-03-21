@@ -5,7 +5,7 @@ namespace Agent.Abstract.Models
 {
     public class AgentMessage
     {
-        public DateTime SendDate { get; set; }
+        public DateTime SendDate { get; set; } = DateTime.Now;
 
         public MessageType MessageType { get; set; }
         

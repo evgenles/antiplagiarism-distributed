@@ -8,7 +8,7 @@ namespace TestAgent
 {
     public class TestAgent2 : AgentAbstract
     {
-        public TestAgent2(ITransportSender transportSender) : base(transportSender, AgentType.Worker, "", MessageType.TaskRequest, MessageType.Task)
+        public TestAgent2(ITransportSender transportSender) : base(transportSender, AgentType.Worker, "", MessageType.TaskRequest, MessageType.SplitterTask)
         {
         }
 
