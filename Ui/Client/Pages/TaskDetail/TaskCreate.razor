@@ -1,0 +1,35 @@
+﻿@using Ui.Shared
+
+<EditForm Model="@TaskData" OnValidSubmit="HandleValidSubmit">
+    <h2 class="text-center">Create task</h2>
+        <div class="table table-responsive">
+            <div class="row" style="width: 99%">
+                <div class="col-sm form-text">Name: </div>
+                <InputText class="col-sm form-control" @bind-Value="TaskData.Name"/>
+            </div>
+            <div class="row" style="width: 99%">
+                <div class="col-sm form-text">Start time: </div>
+                <div class="col-sm form-text">@DateTime.Now</div>
+            </div>
+            <div class="row" style="width: 99%">
+                <div class="col-sm form-text">Creator: </div>
+            <InputText class="col-sm form-control" @bind-Value="TaskData.Creator"/>
+            </div>
+            <div class="row" style="width: 99%">
+                <div class="col-sm form-text">Required sub types </div>
+                <div class="col-sm form-text"></div>
+            </div>
+        </div>
+</EditForm>
+
+@code {
+    public TaskWithSubTasks TaskData { get; set; } = new TaskWithSubTasks();
+    private void HandleValidSubmit()
+    {
+        Console.WriteLine("OnValidSubmit");
+    }
+
+    [Parameter]
+    public EventCallback<TaskWithSubTasks> SelectedTaskChanged { get; set; }
+
+}

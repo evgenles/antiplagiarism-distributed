@@ -2,6 +2,9 @@
 {
     public enum SignalRMessages
     {
-        AgentConnections
+        AgentConnections,
+        AgentsConnectAccepted,
+        TasksConnectAccepted
+
     }
 }

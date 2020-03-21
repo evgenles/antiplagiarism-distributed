@@ -53,7 +53,7 @@
             StateHasChanged();
         });
 
-        _hubConnection.On<List<ConnectionMessage>>("ConnectAccepted", (msg) =>
+        _hubConnection.On<List<ConnectionMessage>>(SignalRMessages.AgentsConnectAccepted.ToString(), (msg) =>
         {
             connectionMessages = msg;
             StateHasChanged();

@@ -1,0 +1,63 @@
+﻿@using Ui.Shared
+
+<div>
+    <h2 class="text-center">Task Info</h2>
+    @if (SelectedTask == null)
+    {
+        <h4>Task is not selected</h4>
+    }
+    else
+    {
+        <div class="table table-responsive">
+            <div class="row" style="width: 99%">
+                <div class="col-sm">Name: </div>
+                <div class="col-sm">@SelectedTask?.Name</div>
+            </div>
+            <div class="row" style="width: 99%">
+                <div class="col-sm">Start time: </div>
+                <div class="col-sm">@SelectedTask?.StartDate</div>
+            </div>
+            <div class="row" style="width: 99%">
+                <div class="col-sm">Creator: </div>
+                <div class="col-sm">@SelectedTask?.Creator</div>
+            </div>
+            @if (SelectedTask?.RequiredSubtype != null)
+            {
+                <div class="row" style="width: 99%">
+                    <div class="col-sm">Required sub types </div>
+                    <div class="col-sm">@string.Join(", ", SelectedTask.RequiredSubtype)</div>
+                </div>
+            }
+            <div class="row" style="width: 99%">
+                <div class="col-sm">Current percentage: </div>
+                <div class="col-sm">@SelectedTask?.ProcessPercentage %</div>
+            </div>
+            @if (Math.Abs((SelectedTask?.ProcessPercentage ?? 0) - 100) < 0.0001)
+            {
+                <div class="row" style="width: 99%">
+                    <div class="col-sm">Unique percentage: </div>
+                    <div class="col-sm">@SelectedTask?.UniquePercentage %</div>
+                </div>
+                <div class="row" style="width: 99%">
+                    <div class="col-sm">Error percentage: </div>
+                    <div class="col-sm">@SelectedTask?.ErrorPercentage %</div>
+                </div>
+                <div class="row justify-content-center" style="width: 99%;margin-top: 10px">
+                    <button class="btn btn-outline-info">Detailed report</button>
+                </div>
+            }
+
+        </div>
+    }
+</div>
+
+
+@code {
+    [Parameter]
+    public TaskWithSubTasks SelectedTask { get; set; }
+
+
+    [Parameter]
+    public EventCallback<TaskWithSubTasks> SelectedTaskChanged { get; set; }
+
+}

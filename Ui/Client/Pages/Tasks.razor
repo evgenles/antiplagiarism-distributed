@@ -1,5 +1,6 @@
 ﻿@page "/tasks"
 @using Radzen
+@using Ui.Client.Pages.TaskDetail
 @using Ui.Shared
 
 <div class="row">
@@ -38,60 +39,29 @@
     </div>
     <div class="col-md-6" style="margin-bottom: 16px">
         <RadzenCard style="overflow: auto;height:500px;width: 35%; position: fixed; justify-content: space-between;">
-            <div>
-
-                <h2 class="text-center">Task Info</h2>
-                @if (selectedTask == null)
-                {
-                    <h4>Task is not selected</h4>
-                }
-                else
-                {
-                    <div class="table table-responsive">
-                        <div class="row" style="width: 99%">
-                            <div class="col-sm">Name: </div>
-                            <div class="col-sm">@selectedTask?.Name</div>
-                        </div>
-                        <div class="row" style="width: 99%">
-                            <div class="col-sm">Start time: </div>
-                            <div class="col-sm">@selectedTask?.StartDate</div>
-                        </div>
-                        <div class="row" style="width: 99%">
-                            <div class="col-sm">Creator: </div>
-                            <div class="col-sm">@selectedTask?.Creator</div>
-                        </div>
-                        @if (selectedTask?.RequiredSubtype != null)
-                        {
-                            <div class="row" style="width: 99%">
-                                <div class="col-sm">Required sub types </div>
-                                <div class="col-sm">@string.Join(", ", selectedTask.RequiredSubtype)</div>
-                            </div>
-                        }
-                        <div class="row" style="width: 99%">
-                            <div class="col-sm">Current percentage: </div>
-                            <div class="col-sm">@selectedTask?.ProcessPercentage %</div>
-                        </div>
-                        @if (Math.Abs((selectedTask?.ProcessPercentage ?? 0) - 100) < 0.0001)
-                        {
-                            <div class="row" style="width: 99%">
-                                <div class="col-sm">Unique percentage: </div>
-                                <div class="col-sm">@selectedTask?.UniquePercentage %</div>
-                            </div>
-                            <div class="row" style="width: 99%">
-                                <div class="col-sm">Error percentage: </div>
-                                <div class="col-sm">@selectedTask?.ErrorPercentage %</div>
-                            </div>
-                            <div class="row justify-content-center" style="width: 99%;margin-top: 10px">
-                                <button class="btn btn-outline-info" >Detailed report</button>
-                            </div>
-                        }
-
-                    </div>
-                }
-            </div>
+            @if (isCreateEnabled)
+            {
+                <TaskCreate/>
+            }
+            else
+            {
+                <TaskInfo @bind-SelectedTask="selectedTask"></TaskInfo>
+            }
             <div class="row justify-content-between">
-                <button class="col col-md-6 btn btn-info">Create task</button>
-                <button class="col col-md-5 btn btn-danger">Delete</button>
+                <button class="col col-md-6 btn btn-info" @onclick="@(e => isCreateEnabled = !isCreateEnabled)">
+                    @if (!isCreateEnabled)
+                    {
+                        <span>Create task</span>
+                    }
+                    else
+                    {
+                        <span>Cancel</span>
+                    }
+                </button>
+                @if (selectedTask != null && !isCreateEnabled)
+                {
+                    <button class="col col-md-5 btn btn-danger">Delete</button>
+                }
             </div>
         </RadzenCard>
     </div>
@@ -99,10 +69,19 @@
 
 @code {
 
-    private List<TaskWithSubTasks> taskMessages = new List<TaskWithSubTasks>();
+    private List<TaskWithSubTasks> taskMessages = new List<TaskWithSubTasks>
+    {
+        
+        new TaskWithSubTasks
+        {
+            Name = "test",
+            Creator = "I am"
+        }
+    };
 
+    bool isCreateEnabled = false;
+    
     TaskWithSubTasks selectedTask = null;
-
     void Change(TreeEventArgs args)
     {
         if (args.Value is TaskWithSubTasks task)

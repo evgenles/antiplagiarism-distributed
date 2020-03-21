@@ -2,6 +2,7 @@
 {
     public enum RpcRequestType
     {
-        GetAllAgents
+        GetAllAgents,
+        GetAllTasks
     }
 }

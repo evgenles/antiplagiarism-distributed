@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Agent.Abstract.Models;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
+using Ui.Shared;
 
 namespace Ui.Server.Hubs
 {
@@ -33,12 +34,11 @@ namespace Ui.Server.Hubs
                 SendDate = DateTime.Now
             };
             var result = await _uiAgent.CallAsync<List<ConnectionMessage>>(msg, TimeSpan.FromSeconds(30));
-            var recived = DateTime.Now;
             if (result != null)
             {
                 _logger.LogInformation(JsonSerializer.Serialize(result.Data));
                 // var response = result.To<List<ConnectionMessage>>();
-                await Clients.Caller.SendCoreAsync("ConnectAccepted", new object[] {result.Data});
+                await Clients.Caller.SendCoreAsync(SignalRMessages.AgentsConnectAccepted.ToString(), new object[] {result.Data});
             }
 
             await base.OnConnectedAsync();

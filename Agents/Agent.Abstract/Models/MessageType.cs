@@ -11,6 +11,6 @@
         WorkerTask,
         TaskStat,
         TaskStatRequest,
-
+        DbRequest,
     }
 }
