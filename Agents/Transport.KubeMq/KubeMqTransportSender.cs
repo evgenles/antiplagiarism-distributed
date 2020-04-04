@@ -46,7 +46,7 @@ namespace Transport.KubeMq
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Can`t send to kafka");
+                _logger.LogError(e, "Can`t send to kubemq");
                 return Task.FromResult(false);
             }
         }

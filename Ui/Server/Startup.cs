@@ -35,28 +35,26 @@ namespace Ui.Server
             services.AddSingleton<IAgentProvider>((sp)=> new AgentProvider(sp, typeof(UiAgent)));
             services.AddHostedService<AgentWorker>();
 
-            services.AddSignalR();
+            services.AddSignalR()
+                .AddHubOptions<TaskHub>(opt=>
+                {
+                    opt.MaximumReceiveMessageSize = long.MaxValue;
+                    opt.EnableDetailedErrors = true;
+                });
             
-            services.AddResponseCompression(opts =>
-            {
-                opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
-                    new[] { "application/octet-stream" });
-            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            app.UseResponseCompression();
-
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                app.UseBlazorDebugging();
+                app.UseWebAssemblyDebugging();
             }
 
             app.UseStaticFiles();
-            app.UseClientSideBlazorFiles<Client.Program>();
+            app.UseBlazorFrameworkFiles();
 
             app.UseRouting();
             app.UseEndpoints(endpoints =>
@@ -64,7 +62,7 @@ namespace Ui.Server
                 endpoints.MapDefaultControllerRoute();
                 endpoints.MapHub<AgentHub>("/agentHub");
                 endpoints.MapHub<TaskHub>("/taskHub");
-                endpoints.MapFallbackToClientSideBlazor<Client.Program>("index.html");
+                endpoints.MapFallbackToFile("index.html");
             });
         }
     }

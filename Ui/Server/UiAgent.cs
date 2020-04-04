@@ -65,5 +65,19 @@ namespace Ui.Server
         {
             throw new NotImplementedException();
         }
+
+        public ValueTask<bool> UploadDocument(byte[] document, string taskId)
+        {
+            throw new NotImplementedException("FILE UPLOAD MUST BE IMPLEMENTED");
+        } 
+
+        public ValueTask<bool> CreateNewTask(TaskMessage taskMessage) =>
+            Transport.SendAsync(AgentType.Splitter.ToString(), new AgentMessage
+            {
+                Author = new Author(this),
+                MessageType = MessageType.SplitterTask,
+                SendDate = DateTime.Now,
+                Data = taskMessage
+            });
     }
 }

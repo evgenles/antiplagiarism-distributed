@@ -4,7 +4,9 @@
     {
         AgentConnections,
         AgentsConnectAccepted,
-        TasksConnectAccepted
-
+        TasksConnectAccepted,
+        CreateTask,
+        TaskStateChanged,
+        
     }
 }

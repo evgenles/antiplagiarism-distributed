@@ -28,10 +28,11 @@ namespace DocumentSplitterAgent
         {
         }
 
-        public override Task ProcessMessageAsync(AgentMessage message)
+        public override async Task ProcessMessageAsync(AgentMessage message)
         {
             var task = message.Data.ToObject<TaskMessage>();
-            var document = WordprocessingDocument.Open(task.DataStream, false);
+            using var dataStream = new MemoryStream(task.Data);
+            var document = WordprocessingDocument.Open(dataStream, false);
             XDocument styles = ExtractStylesPart(document);
             List<string> headingBasedStyles = GetHeadingStylesId(document);
 
@@ -69,24 +70,28 @@ namespace DocumentSplitterAgent
             
             for (int i = 0; i < resultStreams.Count; i++)
             {
-                Transport?.SendAsync(MessageType.WorkerTask.ToString(), new AgentMessage<TaskMessage>
+                if (Transport != null)
                 {
-                    Author = this,
-                    MessageType = MessageType.WorkerTask,
-                    Data = new TaskMessage
+                    await using var ms = new MemoryStream();
+                    await resultStreams[i].data.CopyToAsync(ms);
+                    await Transport.SendAsync(MessageType.WorkerTask.ToString(), new AgentMessage<TaskMessage>
                     {
-                        Creator = task.Creator,
-                        ParentId = task.Id,
-                        Name = $"{task.Name}->{resultStreams[i].name}",
-                        DataStream = resultStreams[i].data,
-                        RequiredSubtype = task.RequiredSubtype
-                    }
-                });
+                        Author = this,
+                        MessageType = MessageType.WorkerTask,
+                        Data = new TaskMessage
+                        {
+                            Creator = task.Creator,
+                            ParentId = task.Id,
+                            Name = $"{task.Name}->{resultStreams[i].name}",
+                            Data = ms.ToArray(),
+                            RequiredSubtype = task.RequiredSubtype
+                        }
+                    });
+                }
+
                 // using var outStream = File.Create($"{i}_{resultStreams[i].name}.docx");
                 // resultStreams[i].data.CopyTo(outStream);
             }
-
-            return Task.CompletedTask;
         }
 
         private (WordprocessingDocument doc, Body body) CreteNewDocToStream(Stream stream, XDocument styles)

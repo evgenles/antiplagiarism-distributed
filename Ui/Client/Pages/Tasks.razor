@@ -1,13 +1,18 @@
 ﻿@page "/tasks"
+@using Agent.Abstract.Models
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Logging
 @using Radzen
 @using Ui.Client.Pages.TaskDetail
 @using Ui.Shared
+
+@inject NavigationManager NavigationManager
 
 <div class="row">
     <div class="col-md-6" style="margin-bottom: 16px">
         <h2 class="text-center">Task List</h2>
 
-        <RadzenTree Data="@taskMessages" Expand="@Expand" Change="@Change"
+        <RadzenTree Data="@taskMessages.Values" Expand="@Expand" Change="@Change"
                     Style="width: 100%">
             <RadzenTreeLevel TextProperty="Name" ChildrenProperty="Children">
                 <Template>
@@ -41,7 +46,7 @@
         <RadzenCard style="overflow: auto;height:500px;width: 35%; position: fixed; justify-content: space-between;">
             @if (isCreateEnabled)
             {
-                <TaskCreate/>
+                <TaskCreate OnTaskCreate="@OnTaskCreate"/>
             }
             else
             {
@@ -68,18 +73,18 @@
 </div>
 
 @code {
+    private HubConnection _hubConnection;
 
-    private List<TaskWithSubTasks> taskMessages = new List<TaskWithSubTasks>
+    private Dictionary<Guid, TaskWithSubTasks> taskMessages = new  Dictionary<Guid, TaskWithSubTasks>
     {
-        
-        new TaskWithSubTasks
+        [Guid.NewGuid()] = new TaskWithSubTasks
         {
             Name = "test",
             Creator = "I am"
         }
     };
 
-    bool isCreateEnabled = false;
+     bool isCreateEnabled = false;
     
     TaskWithSubTasks selectedTask = null;
     void Change(TreeEventArgs args)
@@ -98,5 +103,53 @@
         }
     }
 
+    async Task OnTaskCreate(TaskMessage task)
+    {
+        Console.WriteLine("Task create in task list called");
+        await _hubConnection.InvokeCoreAsync(SignalRMessages.CreateTask.ToString(), new[]{task});
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/taskHub"))
+            .WithAutomaticReconnect()
+            .ConfigureLogging(x=>x.AddProvider(new ConsoleLogProvider()))
+            .Build();
 
+        _hubConnection.On<TaskWithSubTasks>(SignalRMessages.TaskStateChanged.ToString(), (msg) =>
+        {
+            taskMessages[msg.Id] = msg;
+            // switch (msg.State)
+            // {
+            //     case AgentState.Connected:
+            //         connectionMessages.Add(msg);
+            //         break;
+            //         
+            //     case AgentState.Disconnected:
+            //         connectionMessages.RemoveAll(x => x.Who.Id == msg.Who.Id);
+            //         break;
+            //         
+            //     default:
+            //         var connection = connectionMessages.FirstOrDefault(x => x.Who.Id == msg.Who.Id);
+            //         if (connection != null)
+            //         {
+            //             connection.State = msg.State;
+            //         }
+            //         else
+            //         {
+            //             connectionMessages.Add(msg);
+            //         }
+            //         break;
+            // }
+            
+            StateHasChanged();
+        });
+
+        _hubConnection.On<Dictionary<Guid, TaskWithSubTasks>>(SignalRMessages.TasksConnectAccepted.ToString(), (msg) =>
+        {
+            taskMessages = msg;
+            StateHasChanged();
+        });
+        await _hubConnection.StartAsync();
+    }
 }

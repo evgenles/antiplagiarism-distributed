@@ -23,6 +23,7 @@
     {
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(NavigationManager.ToAbsoluteUri("/agentHub"))
+            .WithAutomaticReconnect()
             .Build();
 
         _hubConnection.On<ConnectionMessage>(SignalRMessages.AgentConnections.ToString(), (msg) =>

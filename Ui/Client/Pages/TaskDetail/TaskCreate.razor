@@ -1,35 +1,85 @@
-﻿@using Ui.Shared
+﻿@using System.IO
+@using Agent.Abstract.Models
+@using Radzen
+@using Ui.Shared
 
 <EditForm Model="@TaskData" OnValidSubmit="HandleValidSubmit">
     <h2 class="text-center">Create task</h2>
-        <div class="table table-responsive">
-            <div class="row" style="width: 99%">
-                <div class="col-sm form-text">Name: </div>
-                <InputText class="col-sm form-control" @bind-Value="TaskData.Name"/>
-            </div>
-            <div class="row" style="width: 99%">
-                <div class="col-sm form-text">Start time: </div>
-                <div class="col-sm form-text">@DateTime.Now</div>
-            </div>
-            <div class="row" style="width: 99%">
-                <div class="col-sm form-text">Creator: </div>
-            <InputText class="col-sm form-control" @bind-Value="TaskData.Creator"/>
-            </div>
-            <div class="row" style="width: 99%">
-                <div class="col-sm form-text">Required sub types </div>
-                <div class="col-sm form-text"></div>
-            </div>
+    <div class="table table-responsive">
+        <div class="row">
+            <RadzenUpload ChooseText="Upload document" 
+                          Accept=".docx" 
+                          Url="@($"/TaskUpload/File?taskId={TaskData.Id}")"
+                          Style="margin-bottom: 20px;height: 45px"
+                          Progress="OnProgress" required />
+            @if (file != null)
+            {
+                <div class="col-sm">
+                    Size: @($"{((double) file.Size / 1024):0.##}") kb
+                    <RadzenProgressBar Value="@progress"
+                                       Unit="@info"
+                                       Visible="@(progress > 0)"
+                                       Style="width: 100%"/>
+                </div>
+            }
         </div>
+
+       
+        <div class="row" >
+            <div class="col-sm form-text">Name: </div>
+            <InputText class="col-sm form-control" @bind-Value="TaskData.Name"  required/>
+        </div>
+        <div class="row">
+            <div class="col-sm form-text">Start time: </div>
+            <div class="col-sm form-text">@DateTime.Now</div>
+        </div>
+        <div class="row" >
+            <div class="col-sm form-text">Creator: </div>
+            <InputText class="col-sm form-control" @bind-Value="TaskData.Creator"/>
+        </div>
+        <div class="row" >
+            <div class="col-sm form-text">Required sub types </div>
+            <div class="col-sm form-text"></div>
+        </div>
+        <div class="row  justify-content-between" >
+            <button class ="col btn btn-success" type="submit">Create</button>
+        </div>
+    </div>
 </EditForm>
 
+<style>
+    .row{
+        margin: 0 !important;
+    }
+</style>
 @code {
-    public TaskWithSubTasks TaskData { get; set; } = new TaskWithSubTasks();
+    public TaskMessage TaskData { get; set; } = new TaskMessage();
+    int progress = 0;
+    string info = " %";
+
+
+    void OnProgress(UploadProgressArgs args)
+    {
+        progress = args.Progress;
+        file = args.Files.FirstOrDefault();
+        if (file?.Name != TaskData.FileName)
+        {
+            TaskData.FileName = file?.Name;
+            TaskData.Name ??= file?.Name;
+        }
+        this.progress = args.Progress;
+        StateHasChanged();
+    }
+    Radzen.FileInfo file = null;
+
     private void HandleValidSubmit()
     {
         Console.WriteLine("OnValidSubmit");
+        OnTaskCreate.InvokeAsync(TaskData);
+        TaskData = new TaskMessage();
     }
 
     [Parameter]
-    public EventCallback<TaskWithSubTasks> SelectedTaskChanged { get; set; }
+    public EventCallback<TaskMessage> OnTaskCreate { get; set; }
 
 }
