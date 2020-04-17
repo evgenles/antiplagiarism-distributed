@@ -4,6 +4,7 @@
     {
         Ui,
         DbManager,
+        FileManager,
         ConnectionAnalyzer,
         Splitter,
         Worker,

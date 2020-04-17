@@ -28,7 +28,7 @@ namespace DocumentSplitterAgent
         {
         }
 
-        public override async Task ProcessMessageAsync(AgentMessage message)
+        public override async Task ProcessMessageAsync(AgentMessage message, Dictionary<string, string> _)
         {
             var task = message.Data.ToObject<TaskMessage>();
             using var dataStream = new MemoryStream(task.Data);

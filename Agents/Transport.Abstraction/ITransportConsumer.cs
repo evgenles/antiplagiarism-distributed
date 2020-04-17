@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,7 +14,7 @@ namespace Transport.Abstraction
         event ConsumedEventHandler OnConsumed;
         event RpcRequestEventHandler OnRpcRequest;
 
-        public delegate Task ConsumedEventHandler(string result, string queueTopic);
+        public delegate Task ConsumedEventHandler(byte[] result, string queueTopic, bool forceBytes, Dictionary<string, string> headers);
 
         public delegate Task<string> RpcRequestEventHandler(string result, string queueTopic);
 

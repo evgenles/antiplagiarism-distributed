@@ -1,17 +1,20 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Agent.Abstract.Models;
 
 namespace Agent.Abstract
 {
     public interface IAgent
     {
-        public AgentType Type { get; }
-        
-        public string SubType { get; }
+        AgentType Type { get; }
 
-        public Task ProcessMessageAsync(AgentMessage message);
+        string SubType { get; }
 
-        public Task<AgentMessage> ProcessRpcAsync(AgentMessage<RpcRequest> message);
+        Task ProcessMessageAsync(AgentMessage message, Dictionary<string, string> headers);
+        Task ProcessMessageAsync(byte[] clearByteMessage, Dictionary<string, string> headers);
+        Task<AgentMessage<TResp>> CallAsync<TResp>(AgentMessage<RpcRequest> msg, TimeSpan timeout) where TResp : class;
 
+        Task<AgentMessage> ProcessRpcAsync(AgentMessage<RpcRequest> message);
     }
 }

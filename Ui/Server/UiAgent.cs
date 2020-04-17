@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Agent.Abstract;
 using Agent.Abstract.Models;
@@ -27,21 +28,8 @@ namespace Ui.Server
             _logger = logger;
         }
 
-        public async Task<TResp> CallAsync<TResp>(AgentMessage msg, TimeSpan timeout)
-        {
-        //    msg.MessageType = MessageType.RpcRequest;
-            return await Transport.CallServiceAsync<AgentMessage, TResp>(msg.MessageType.ToString(), msg, timeout);
-        }
-        
-        public async Task<AgentMessage<TResp>> CallAsync<TResp>(AgentMessage<RpcRequest> msg, TimeSpan timeout) where TResp : class
-        {
-          //  msg.MessageType = MessageType.RpcRequest;
-            var resp =  await Transport.CallServiceAsync<AgentMessage<RpcRequest>, AgentMessage>(MessageType.ConnectionRequest.ToString(), msg, timeout);
-           //AgentMessage<RpcRequest> resp = null; 
-           return resp?.To<TResp>();
-        }
 
-        public override async Task ProcessMessageAsync(AgentMessage message)
+        public override async Task ProcessMessageAsync(AgentMessage message, Dictionary<string, string> _)
         {
             try
             {
@@ -66,10 +54,12 @@ namespace Ui.Server
             throw new NotImplementedException();
         }
 
-        public ValueTask<bool> UploadDocument(byte[] document, string taskId)
-        {
-            throw new NotImplementedException("FILE UPLOAD MUST BE IMPLEMENTED");
-        } 
+        public ValueTask<bool> UploadDocumentAsync(byte[] document, string taskId) =>
+             Transport.SendAsync(AgentType.FileManager.ToString(), document, true,
+                new Dictionary<string, string>
+                {
+                    ["Task"] = taskId
+                });
 
         public ValueTask<bool> CreateNewTask(TaskMessage taskMessage) =>
             Transport.SendAsync(AgentType.Splitter.ToString(), new AgentMessage

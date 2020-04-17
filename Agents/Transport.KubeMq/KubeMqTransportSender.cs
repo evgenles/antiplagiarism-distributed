@@ -29,7 +29,9 @@ namespace Transport.KubeMq
             _id = $"{Environment.MachineName}_{Guid.NewGuid()}";
         }
 
-        public Task<bool> SendAsync(string receiver, string data, Dictionary<string, string> headers = null)
+
+        public ValueTask<bool> SendAsync(string receiver, byte[] data, bool forceBytes = true,
+            Dictionary<string, string> headers = null)
         {
             try
             {
@@ -37,23 +39,31 @@ namespace Transport.KubeMq
                 {
                     Channel = receiver,
                     ClientID = _id,
-                    Body = Encoding.UTF8.GetBytes(data),
+                    Body = data,
                     Tags = headers,
                     Store = false
                 };
+                if (forceBytes) evt.Tags.Add("ForceBytes", "1");
                 _sender.SendEvent(evt);
-                return Task.FromResult(true);
+                return new ValueTask<bool>(true);
             }
             catch (Exception e)
             {
                 _logger.LogError(e, "Can`t send to kubemq");
-                return Task.FromResult(false);
+                return new ValueTask<bool>(true);
             }
         }
 
-        public async ValueTask<bool> SendAsync<T>(string receiver, T data, Dictionary<string, string> headers = null)
+        public ValueTask<bool> SendAsync(string receiver, string data, bool forceBytes = false,
+            Dictionary<string, string> headers = null)
         {
-            return await SendAsync(receiver, JsonSerializer.Serialize(data), headers);
+            return SendAsync(receiver, Encoding.UTF8.GetBytes(data), forceBytes, headers);
+        }
+
+        public ValueTask<bool> SendAsync<T>(string receiver, T data, bool forceBytes = false,
+            Dictionary<string, string> headers = null)
+        {
+            return SendAsync(receiver, JsonSerializer.Serialize(data), forceBytes, headers);
         }
 
 

@@ -24,7 +24,7 @@ namespace Transport.Kafka
             _kafkaConfiguration = kafkaConfiguration.Value;
         }
 
-        public async Task<bool> SendAsync(string receiver, string data, Dictionary<string, string> headers = null)
+        public async ValueTask<bool> SendAsync(string receiver, byte[] data, bool forceBytes = true, Dictionary<string, string> headers = null)
         {
             try
             {
@@ -34,8 +34,9 @@ namespace Transport.Kafka
                 headers?.Select(x => new Header(x.Key, Encoding.UTF8.GetBytes(x.Value)))
                     .ToList()
                     .ForEach(x=>kHeaders.Add(x));
-                using var producer = new ProducerBuilder<string, string>(config).Build();
-                await producer.ProduceAsync(receiver, new Message<string, string>()
+                if(forceBytes) kHeaders.Add("ForceBytes", new byte[]{1});
+                using var producer = new ProducerBuilder<string, byte[]>(config).Build();
+                await producer.ProduceAsync(receiver, new Message<string, byte[]>()
                 {
                     Value = data,
                     Headers = kHeaders
@@ -51,9 +52,14 @@ namespace Transport.Kafka
             }
         }
 
-        public async ValueTask<bool> SendAsync<T>(string receiver, T data, Dictionary<string, string> headers = null)
+        public  ValueTask<bool> SendAsync(string receiver, string data,bool forceBytes = false, Dictionary<string, string> headers = null)
         {
-            return await SendAsync(receiver, JsonSerializer.Serialize(data), headers);
+            return  SendAsync(receiver, Encoding.UTF8.GetBytes(data), forceBytes, headers);
+        }
+
+        public  ValueTask<bool> SendAsync<T>(string receiver, T data, bool forceBytes = false, Dictionary<string, string> headers = null)
+        {
+            return  SendAsync(receiver, JsonSerializer.Serialize(data), forceBytes, headers);
         }
 
 
@@ -87,7 +93,7 @@ namespace Transport.Kafka
 
                 consumer.Subscribe(responseTo);
                 _logger.LogInformation($"{DateTime.Now} Sended rpc request");
-                await SendAsync(receiver, data, new Dictionary<string, string>
+                await SendAsync(receiver, data, false, new Dictionary<string, string>
                 {
                     ["ReplayTo"] = responseTo
                 });

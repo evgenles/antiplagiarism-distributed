@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -58,7 +59,12 @@ namespace Agent.Abstract
             Task.Run(SendHearthBeat);
         }
 
-        public abstract Task ProcessMessageAsync(AgentMessage message);
+        public abstract Task ProcessMessageAsync(AgentMessage message, Dictionary<string, string> headers);
+
+        public virtual Task ProcessMessageAsync(byte[] clearByteMessage, Dictionary<string, string> headers)
+        {
+            return Task.CompletedTask;
+        }
 
         // public async Task ProcessRpcAsync(AgentMessage<RpcRequest> message, string responseTo)
         // {
@@ -68,6 +74,16 @@ namespace Agent.Abstract
         // }
 
         public abstract Task<AgentMessage> ProcessRpcAsync(AgentMessage<RpcRequest> message);
+        public virtual async Task<TResp> CallAsync<TResp>(AgentMessage msg, TimeSpan timeout)
+        {
+            return await Transport.CallServiceAsync<AgentMessage, TResp>(msg.MessageType.ToString(), msg, timeout);
+        }
+        
+        public virtual async Task<AgentMessage<TResp>> CallAsync<TResp>(AgentMessage<RpcRequest> msg, TimeSpan timeout) where TResp : class
+        {
+            var resp =  await Transport.CallServiceAsync<AgentMessage<RpcRequest>, AgentMessage>(MessageType.ConnectionRequest.ToString(), msg, timeout);
+            return resp?.To<TResp>();
+        }
 
 
         private async Task SendConnectAsync()

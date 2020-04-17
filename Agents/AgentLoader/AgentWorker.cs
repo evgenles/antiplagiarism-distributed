@@ -157,18 +157,25 @@ namespace AgentLoader
             _consumer.Subscribe(agent.Type + "_" + agent.SubType, agent.RpcMessageType.ToString(), stoppingToken,
                 agentSupported
             );
-            _consumer.OnConsumed += async (result, topic) =>
+            _consumer.OnConsumed += async (result, topic, forceBytes, headers) =>
             {
                 if (agentSupported.Contains(topic))
                 {
-                    var msg = JsonSerializer.Deserialize<AgentMessage>(result);
-                    if (msg.Author.Id != agent.Id)
+                    if (!forceBytes)
                     {
-                        agent.State = AgentState.InWork;
-                        if (msg.MessageType != MessageType.Connection)
-                            _logger.LogInformation($"Consumed message");
-                        await agent.ProcessMessageAsync(msg);
-                        agent.State = AgentState.Online;
+                        var msg = JsonSerializer.Deserialize<AgentMessage>(result);
+                        if (msg.Author.Id != agent.Id)
+                        {
+                            agent.State = AgentState.InWork;
+                            if (msg.MessageType != MessageType.Connection)
+                                _logger.LogInformation($"Consumed message");
+                            await agent.ProcessMessageAsync(msg, headers);
+                            agent.State = AgentState.Online;
+                        }
+                    }
+                    else
+                    {
+                        await agent.ProcessMessageAsync(result, headers);
                     }
                 }
             };

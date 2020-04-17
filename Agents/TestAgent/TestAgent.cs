@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Agent.Abstract;
 using Agent.Abstract.Models;
@@ -13,7 +14,7 @@ namespace TestAgent
         {
         }
 
-        public override Task ProcessMessageAsync(AgentMessage message)
+        public override Task ProcessMessageAsync(AgentMessage message, Dictionary<string, string> _)
         {
             throw new NotImplementedException();
         }

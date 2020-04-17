@@ -30,7 +30,13 @@ namespace Transport.KubeMq
         {
             try
             {
-                await OnConsumed(Encoding.UTF8.GetString(eventReceive.Body), eventReceive.Channel);
+                if (OnConsumed != null)
+                {
+                    await OnConsumed(eventReceive.Body, eventReceive.Channel,
+                        eventReceive.Tags.ContainsKey("ForceBytes"),
+                        eventReceive.Tags
+                    );
+                }
             }
             catch (Exception e)
             {
@@ -95,7 +101,7 @@ namespace Transport.KubeMq
             }
             catch (Exception e)
             {
-               _logger.LogError(e, "Can`t subscribe to events");
+                _logger.LogError(e, "Can`t subscribe to events");
             }
         }
 

@@ -38,15 +38,14 @@ namespace Transport.Kafka
                 AutoOffsetReset = AutoOffsetReset.Latest,
                 GroupId = id,
             };
-            var consumer = new ConsumerBuilder<string, string>(config).Build();
+            var consumer = new ConsumerBuilder<string, byte[]>(config).Build();
             consumer.Subscribe(queueTopic);
 
             var rpcConsumer = new ConsumerBuilder<string, string>(config).Build();
             rpcConsumer.Subscribe(rpcQueueTopic);
 
-            Task.Run(()=>ListenMsg(consumer, cancellationToken), cancellationToken);
-            Task.Run(()=>ListenRpc(rpcConsumer, cancellationToken), cancellationToken);
-
+            Task.Run(() => ListenMsg(consumer, cancellationToken), cancellationToken);
+            Task.Run(() => ListenRpc(rpcConsumer, cancellationToken), cancellationToken);
         }
 
         public void Subscribe(string id, string rpcQueueTopic, params string[] queueTopic)
@@ -54,14 +53,18 @@ namespace Transport.Kafka
             Subscribe(id, rpcQueueTopic, CancellationToken.None, queueTopic);
         }
 
-        private async Task ListenMsg(IConsumer<string, string> consumer, CancellationToken cancellationToken)
+        private async Task ListenMsg(IConsumer<string, byte[]> consumer, CancellationToken cancellationToken)
         {
             while (!cancellationToken.IsCancellationRequested)
             {
                 try
                 {
                     var msg = consumer.Consume(cancellationToken);
-                    if (OnConsumed != null) await OnConsumed(msg.Value, msg.Topic);
+                    var forceBytes = msg.Message.Headers.FirstOrDefault(x => x.Key == "ForceBytes") != null;
+                    if (OnConsumed != null)
+                        await OnConsumed(msg.Message.Value, msg.Topic, forceBytes,
+                            msg.Message.Headers.ToDictionary(s => s.Key,
+                                v => Encoding.UTF8.GetString(v.GetValueBytes())));
                 }
                 catch (Exception e)
                 {
@@ -69,29 +72,29 @@ namespace Transport.Kafka
                 }
             }
         }
-        private async Task ListenRpc(IConsumer<string, string> consumer,CancellationToken cancellationToken)
+
+        private async Task ListenRpc(IConsumer<string, string> consumer, CancellationToken cancellationToken)
         {
             while (!cancellationToken.IsCancellationRequested)
             {
                 try
                 {
                     var msg = consumer.Consume(cancellationToken);
-                    var replayToHeader = msg.Headers.FirstOrDefault(x => x.Key == "ReplayTo")?.GetValueBytes();
+                    var replayToHeader = msg.Message.Headers.FirstOrDefault(x => x.Key == "ReplayTo")?.GetValueBytes();
                     if (replayToHeader != null)
                     {
                         if (OnRpcRequest != null)
                         {
                             foreach (var inv in OnRpcRequest.GetInvocationList())
                             {
-                                var result = await (Task<string>)inv.DynamicInvoke(msg.Value, msg.Topic);
+                                var result = await (Task<string>) inv.DynamicInvoke(msg.Message.Value, msg.Topic);
                                 if (result != null)
                                 {
-                                    await _transportSender.SendAsync(Encoding.UTF8.GetString(replayToHeader), result);
+                                    await _transportSender.SendAsync(Encoding.UTF8.GetString(replayToHeader), result,
+                                        false);
                                     break;
                                 }
                             }
-
-                          
                         }
 
                         _logger.LogInformation($"{DateTime.Now} Processed");
