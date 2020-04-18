@@ -6,11 +6,13 @@
         Connection,
         ConnectionRequest,
         RpcResponse,
+        DeleteFile,
         SplitterTask,
         TaskRequest,
         WorkerTask,
         TaskStat,
         TaskStatRequest,
         DbRequest,
+        FileRequest
     }
 }

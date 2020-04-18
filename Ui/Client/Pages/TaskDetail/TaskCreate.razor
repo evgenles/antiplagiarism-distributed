@@ -9,7 +9,7 @@
         <div class="row">
             <RadzenUpload ChooseText="Upload document" 
                           Accept=".docx" 
-                          Url="@($"/TaskUpload/File?taskId={TaskData.Id}")"
+                          Url="@($"/TaskUpload/File?taskId={TaskData.Id:N}")"
                           Style="margin-bottom: 20px;height: 45px"
                           Progress="OnProgress" required />
             @if (file != null)

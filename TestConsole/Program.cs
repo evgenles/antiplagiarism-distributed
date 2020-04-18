@@ -21,7 +21,7 @@ namespace TestConsole
                     {
                         //   Data = File.OpenRead("diploma2.docx")
                     }
-                }, new Dictionary<string, string>())
+                })
                 .GetAwaiter()
                 .GetResult();
         }
