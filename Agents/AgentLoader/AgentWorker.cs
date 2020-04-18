@@ -169,7 +169,7 @@ namespace AgentLoader
                             agent.State = AgentState.InWork;
                             if (msg.MessageType != MessageType.Connection)
                                 _logger.LogInformation($"Consumed message");
-                            await agent.ProcessMessageAsync(msg, headers);
+                            await agent.ProcessMessageAsync(msg);
                             agent.State = AgentState.Online;
                         }
                     }

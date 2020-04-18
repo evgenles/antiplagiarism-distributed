@@ -29,7 +29,7 @@ namespace Ui.Server
         }
 
 
-        public override async Task ProcessMessageAsync(AgentMessage message, Dictionary<string, string> _)
+        public override async Task ProcessMessageAsync(AgentMessage message)
         {
             try
             {

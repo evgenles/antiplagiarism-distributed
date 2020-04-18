@@ -14,7 +14,7 @@ namespace TestAgent
         {
         }
 
-        public override Task ProcessMessageAsync(AgentMessage message, Dictionary<string, string> _)
+        public override Task ProcessMessageAsync(AgentMessage message)
         {
             throw new NotImplementedException();
         }

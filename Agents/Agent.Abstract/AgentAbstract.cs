@@ -59,7 +59,7 @@ namespace Agent.Abstract
             Task.Run(SendHearthBeat);
         }
 
-        public abstract Task ProcessMessageAsync(AgentMessage message, Dictionary<string, string> headers);
+        public abstract Task ProcessMessageAsync(AgentMessage message);
 
         public virtual Task ProcessMessageAsync(byte[] clearByteMessage, Dictionary<string, string> headers)
         {

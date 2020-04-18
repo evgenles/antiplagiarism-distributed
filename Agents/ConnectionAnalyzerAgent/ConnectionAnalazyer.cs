@@ -93,7 +93,7 @@ namespace ConnectionAnalyzerAgent
             };
         }
 
-        public override Task ProcessMessageAsync(AgentMessage message, Dictionary<string, string> _)
+        public override Task ProcessMessageAsync(AgentMessage message)
         {
             var data = message.Data.ToObject<ConnectionMessage>();
             var connectionState = new ConnectionState

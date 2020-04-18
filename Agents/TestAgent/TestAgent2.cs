@@ -13,7 +13,7 @@ namespace TestAgent
         {
         }
 
-        public override Task ProcessMessageAsync(AgentMessage message, Dictionary<string, string> _)
+        public override Task ProcessMessageAsync(AgentMessage message)
         {
             Console.WriteLine($"XXX {message.Author.Type} {message.Author.SubType} connected in {message.SendDate}");
             return Task.FromResult<AgentMessage>(null);

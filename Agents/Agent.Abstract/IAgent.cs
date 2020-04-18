@@ -11,7 +11,7 @@ namespace Agent.Abstract
 
         string SubType { get; }
 
-        Task ProcessMessageAsync(AgentMessage message, Dictionary<string, string> headers);
+        Task ProcessMessageAsync(AgentMessage message);
         Task ProcessMessageAsync(byte[] clearByteMessage, Dictionary<string, string> headers);
         Task<AgentMessage<TResp>> CallAsync<TResp>(AgentMessage<RpcRequest> msg, TimeSpan timeout) where TResp : class;
 
