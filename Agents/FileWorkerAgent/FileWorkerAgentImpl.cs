@@ -63,18 +63,23 @@ namespace FileWorkerAgent
                 try
                 {
                     var response = await GetFileAsync(message.Data.Args[0]);
-                    var rpcResponse = new AgentMessage<byte[]>
+                    return new AgentMessage<byte[]>
                     {
                         Author = this,
                         Data = response,
                         MessageType = MessageType.RpcResponse
                     };
-                    return rpcResponse;
                 }
                 catch (Exception e)
                 {
                     _logger.LogError("Error occured while downloading {@TaskId} in {@AgentName} with {@Exception}",
                         message.Data.Args[0], nameof(FileWorkerAgentImpl), e.ToString());
+
+                    return new AgentMessage<byte[]>
+                    {
+                        Author = this,
+                        MessageType = MessageType.RpcResponse
+                    };
                 }
             }
 

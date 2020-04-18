@@ -8,15 +8,14 @@ using MongoDB.Bson.IO;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
 using Xunit;
+using ILogger = DnsClient.Internal.ILogger;
 
 namespace AgentImplTests
 {
     public class FileWorkerAgentTests
     {
-        [Fact]
-        public async void UploadFileRealTest()
+        public (GridFSBucket gridFs, FileWorkerAgentImpl fileAgent) Configure()
         {
-            //prepare
             using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
             var logger = loggerFactory.CreateLogger<FileWorkerAgentImpl>();
             var mongoClient = new MongoClient("mongodb://root:example@localhost");
@@ -26,6 +25,14 @@ namespace AgentImplTests
                 BucketName = "test"
             });
             var fileAgent = new FileWorkerAgent.FileWorkerAgentImpl(gridFs, null, logger);
+            return (gridFs, fileAgent);
+        }
+        
+        [Fact]
+        public async void UploadFileRealTest()
+        {
+            //prepare
+            var (gridFs, fileAgent) = Configure();
             var byteData = new byte[] {2, 0, 2, 0, 0, 4, 1, 8, 1, 0, 3, 8};
 
             var testId = new Guid().ToString("N");
@@ -75,6 +82,24 @@ namespace AgentImplTests
             f = await gridFs.FindAsync(
                 new ExpressionFilterDefinition<GridFSFileInfo<ObjectId>>(x => x.Filename == testId));
             Assert.False(await f.AnyAsync());
+        }
+
+        [Fact]
+        public async void CheckNoExistFileTest()
+        {
+            var (_, fileAgent) = Configure();
+            var data = await fileAgent.ProcessRpcAsync(new AgentMessage<RpcRequest>
+            {
+                MessageType = MessageType.FileRequest,
+                Data = new RpcRequest
+                {
+                    Args = new[] {Guid.NewGuid().ToString("N")}
+                }
+            });
+            Assert.NotNull(data);
+            
+            var resBytes = data.To<byte[]>().Data;
+            Assert.Null(resBytes);
         }
     }
 }
