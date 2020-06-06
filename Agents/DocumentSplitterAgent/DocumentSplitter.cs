@@ -11,6 +11,7 @@ using DocumentFormat.OpenXml;
 using Transport.Abstraction;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using FileWorkerAgent;
 
 namespace DocumentSplitterAgent
 {
@@ -23,15 +24,18 @@ namespace DocumentSplitterAgent
     /// </summary>
     public class DocumentSplitter : AgentAbstract
     {
-        public DocumentSplitter(ITransportSender transport) : base(transport, AgentType.Splitter, "",
+        private readonly IFileWorkerAgent _fileWorkerAgent;
+
+        public DocumentSplitter(ITransportSender transport, IFileWorkerAgent fileWorkerAgent) : base(transport, AgentType.Splitter, "",
             MessageType.Unknown, MessageType.SplitterTask)
         {
+            _fileWorkerAgent = fileWorkerAgent;
         }
 
         public override async Task ProcessMessageAsync(AgentMessage message)
         {
             var task = message.Data.ToObject<TaskMessage>();
-            using var dataStream = new MemoryStream(task.Data);
+            await using var dataStream =  await _fileWorkerAgent.GetFileStreamAsync(task.Id.ToString("N"));
             var document = WordprocessingDocument.Open(dataStream, false);
             XDocument styles = ExtractStylesPart(document);
             List<string> headingBasedStyles = GetHeadingStylesId(document);

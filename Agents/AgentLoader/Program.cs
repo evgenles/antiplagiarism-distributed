@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Agent.Abstract;
 using AgentLoader.Models;
+using FileWorkerAgent;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -31,7 +32,8 @@ namespace AgentLoader
                 foreach (var directory in Directory.GetDirectories(agentsFolder))
                 {
                     AgentContexts.Add(new AgentAssemblyLoaderContext(directory,
-                        typeof(AgentAbstract)));
+                        typeof(AgentAbstract), typeof(ITransportConsumer),
+                        typeof(ITransportSender), typeof(ILogger), typeof(IFileWorkerAgent)));
                 }
                 if(AgentContexts.Count == 0)
                     throw new ArgumentException("Can`t load any agent context in `Agents\\*` directory");
@@ -47,11 +49,12 @@ namespace AgentLoader
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
+                .ConfigureLogging(log=>log.AddConsole())
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddKubeMqTransport();
                     //services.AddKafkaTransport(hostContext.Configuration);
-
+                    services.AddSingleton<IFileWorkerAgent, FileWorkerAgentImpl>();
                     var agents = AgentAssemblyLoaderContext.AgentTypes;
                     agents.ForEach(type => services.AddTransient(type));
                     services.AddSingleton<IAgentProvider, AgentProvider>();

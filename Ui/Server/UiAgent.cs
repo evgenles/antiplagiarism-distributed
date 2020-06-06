@@ -5,6 +5,7 @@ using Agent.Abstract;
 using Agent.Abstract.Models;
 using AgentLoader;
 using AgentLoader.Models;
+using FileWorkerAgent;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Transport.Abstraction;
@@ -18,14 +19,16 @@ namespace Ui.Server
         private readonly IHubContext<AgentHub> _agentUiHub;
         private readonly IHubContext<TaskHub> _taskUiHub;
         private readonly ILogger<UiAgent> _logger;
+        private readonly IFileWorkerAgent _fileWorkerAgent;
 
         public UiAgent(IHubContext<AgentHub> agentUiHub, IHubContext<TaskHub> taskUiHub, ILogger<UiAgent> logger,
-            ITransportSender transportSender) :
+            ITransportSender transportSender, IFileWorkerAgent fileWorkerAgent) :
             base(transportSender, AgentType.Ui, "", MessageType.Unknown, MessageType.Connection, MessageType.TaskStat)
         {
             _agentUiHub = agentUiHub;
             _taskUiHub = taskUiHub;
             _logger = logger;
+            _fileWorkerAgent = fileWorkerAgent;
         }
 
 
@@ -54,15 +57,21 @@ namespace Ui.Server
             throw new NotImplementedException();
         }
 
-        public ValueTask<bool> UploadDocumentAsync(byte[] document, string taskId) =>
-             Transport.SendAsync(AgentType.FileManager.ToString(), document, true,
-                new Dictionary<string, string>
-                {
-                    ["Task"] = taskId
-                });
-
+        public async ValueTask<bool> UploadDocumentAsync(byte[] document, string taskId)
+        {
+            try
+            {
+                await _fileWorkerAgent.UploadFileAsync(taskId, document);
+                return true;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Exception when loading file for task {@taskId}", taskId);
+                return false;
+            }
+        }
         public ValueTask<bool> CreateNewTask(TaskMessage taskMessage) =>
-            Transport.SendAsync(AgentType.Splitter.ToString(), new AgentMessage
+            Transport.SendAsync(MessageType.SplitterTask.ToString(), new AgentMessage
             {
                 Author = new Author(this),
                 MessageType = MessageType.SplitterTask,

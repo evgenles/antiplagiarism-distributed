@@ -48,18 +48,34 @@ namespace Transport.KubeMq
         {
             try
             {
-                var result = OnRpcRequest(Encoding.UTF8.GetString(eventReceive.Body), eventReceive.Channel)
-                    .ConfigureAwait(false)
-                    .GetAwaiter()
-                    .GetResult();
+                if (OnRpcRequest != null)
+                {
+                    foreach (var inv in OnRpcRequest.GetInvocationList())
+                    {
+                        var result = ((Task<string>)inv
+                                .DynamicInvoke(Encoding.UTF8.GetString(eventReceive.Body),
+                                    eventReceive.Channel))?.ConfigureAwait(false)
+                            .GetAwaiter()
+                            .GetResult();
+                        if (result != null)
+                        {
+                            return new Response(eventReceive)
+                            {
+                                Body = Encoding.UTF8.GetBytes(result),
+                                CacheHit = false,
+                                ClientID = $"{id}{Guid.NewGuid()}",
+                                Error = "",
+                                Executed = true,
+                                Timestamp = DateTime.Now
+                            };
+                        }
+                    }
+                }
                 return new Response(eventReceive)
                 {
-                    Body = Encoding.UTF8.GetBytes(result),
-                    CacheHit = false,
+                    Error = "Cant find rpc agent",
                     ClientID = $"{id}{Guid.NewGuid()}",
-                    Error = "",
-                    Executed = true,
-                    Timestamp = DateTime.Now
+                    Body = new byte[0]
                 };
             }
             catch (Exception e)

@@ -8,6 +8,7 @@ using System.Linq;
 using Agent.Abstract;
 using AgentLoader;
 using AgentLoader.Models;
+using FileWorkerAgent;
 using Microsoft.Extensions.Configuration;
 using Transport.Kafka;
 using Transport.KubeMq;
@@ -32,6 +33,7 @@ namespace Ui.Server
             services.AddKubeMqTransport();
             //services.AddKafkaTransport(_configuration);
             services.AddSingleton<UiAgent>();
+            services.AddSingleton<IFileWorkerAgent, FileWorkerAgentImpl>();
             services.AddSingleton<IAgentProvider>((sp)=> new AgentProvider(sp, typeof(UiAgent)));
             services.AddHostedService<AgentWorker>();
 

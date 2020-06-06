@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.IO;
+using System.Threading.Tasks;
 
 namespace FileWorkerAgent
 {
@@ -7,5 +8,6 @@ namespace FileWorkerAgent
         Task DeleteFileAsync(string taskId);
         Task UploadFileAsync(string taskId, byte[] data);
         Task<byte[]> GetFileAsync(string taskId);
+        Task<Stream> GetFileStreamAsync(string taskId);
     }
 }

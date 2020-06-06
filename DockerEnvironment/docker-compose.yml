@@ -14,7 +14,9 @@ services:
       METRICS_TRACING_SAMPLE : "0.1"
       METRICS_PROMETHEUS_ENABLE : "true"
       METRICS_PROMETHEUS_PATH : "/metrics"
-
+      GRPC_BODY_LIMIT: 12526905
+      GRPC_SUB_BUFF_SIZE: 12526905
+       
   mongo:
     image: mongo
     restart: always

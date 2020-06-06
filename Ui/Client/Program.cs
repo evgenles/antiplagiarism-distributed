@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Net.Http;
 using System.Threading.Tasks;
 using System.Text;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
@@ -13,7 +14,7 @@ namespace Ui.Client
         public static async Task Main(string[] args)
         {
             var builder = WebAssemblyHostBuilder.CreateDefault(args);
-            builder.Services.AddBaseAddressHttpClient();
+            builder.Services.AddSingleton<HttpClient>();
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("uk-UA");
             CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("uk-UA");
             CultureInfo.DefaultThreadCurrentCulture  = CultureInfo.GetCultureInfo("uk-UA");

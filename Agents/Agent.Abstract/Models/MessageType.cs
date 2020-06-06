@@ -6,6 +6,7 @@
         Connection,
         ConnectionRequest,
         RpcResponse,
+        CreateFile,
         DeleteFile,
         SplitterTask,
         TaskRequest,

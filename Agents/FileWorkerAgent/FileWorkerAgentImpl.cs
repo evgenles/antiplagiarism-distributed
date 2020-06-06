@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Agent.Abstract;
 using Agent.Abstract.Models;
 using DnsClient.Internal;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -25,9 +27,10 @@ namespace FileWorkerAgent
             _logger = logger;
             _gridFs = gridFsBucket;
         }
-
+        
+        [ActivatorUtilitiesConstructor]
         public FileWorkerAgentImpl(ITransportSender transport, ILogger<FileWorkerAgentImpl> logger) : base(transport,
-            AgentType.FileManager, "", MessageType.FileRequest, MessageType.DeleteFile)
+            AgentType.FileManager, "", MessageType.FileRequest, MessageType.CreateFile, MessageType.DeleteFile)
         {
             _logger = logger;
             var client = new MongoClient("mongodb://root:example@localhost");
@@ -120,6 +123,10 @@ namespace FileWorkerAgent
         {
             var response = await _gridFs.DownloadAsBytesByNameAsync(taskId);
             return response;
+        }
+        public async Task<Stream> GetFileStreamAsync(string taskId)
+        {
+            return await _gridFs.OpenDownloadStreamByNameAsync(taskId);
         }
     }
 }
