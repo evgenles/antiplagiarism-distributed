@@ -37,6 +37,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{62536469
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentImplTests", "Agents\Tests\AgentImplTests\AgentImplTests.csproj", "{CBF9E519-9F84-4327-80D2-7BD7F331A096}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DbWorkerAgent", "Agents\DbWorkerAgent\DbWorkerAgent.csproj", "{8F07F8B5-BAAF-4119-9293-D17461DDB343}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -99,6 +101,10 @@ Global
 		{CBF9E519-9F84-4327-80D2-7BD7F331A096}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CBF9E519-9F84-4327-80D2-7BD7F331A096}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CBF9E519-9F84-4327-80D2-7BD7F331A096}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F07F8B5-BAAF-4119-9293-D17461DDB343}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F07F8B5-BAAF-4119-9293-D17461DDB343}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F07F8B5-BAAF-4119-9293-D17461DDB343}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F07F8B5-BAAF-4119-9293-D17461DDB343}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -119,5 +125,6 @@ Global
 		{FC2DEB58-CE74-48E9-8CF2-426EEACA3242} = {6F008EB8-4A85-4A47-9A41-11305F58E6E6}
 		{62536469-5CA7-46C2-8C8D-B9CAC9E88B81} = {012B10D5-316D-4753-9F79-37F5A1F6FE27}
 		{CBF9E519-9F84-4327-80D2-7BD7F331A096} = {62536469-5CA7-46C2-8C8D-B9CAC9E88B81}
+		{8F07F8B5-BAAF-4119-9293-D17461DDB343} = {6F008EB8-4A85-4A47-9A41-11305F58E6E6}
 	EndGlobalSection
 EndGlobal

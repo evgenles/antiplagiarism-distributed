@@ -66,12 +66,13 @@ namespace AgentLoader
             agent.StoppingToken = stoppingToken;
             var agentSupported = agent.SupportedMessage.Select(x => x.ToString())
                 .ToArray();
-            _consumer.Subscribe(agent.Type + "_" + agent.SubType, agent.RpcMessageType.ToString(), stoppingToken,
+            string agentId = $"{agent.Type}_{agent.SubType}";
+            _consumer.Subscribe(agentId, agent.RpcMessageType.ToString(), stoppingToken,
                 agentSupported
             );
-            _consumer.OnConsumed += async (result, topic, forceBytes, headers) =>
+            _consumer.OnConsumed += async (id, result, topic, forceBytes, headers) =>
             {
-                if (agentSupported.Contains(topic))
+                if (agentId == id && agentSupported.Contains(topic))
                 {
                     if (!forceBytes)
                     {

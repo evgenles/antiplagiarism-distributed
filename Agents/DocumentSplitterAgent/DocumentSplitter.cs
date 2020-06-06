@@ -12,6 +12,7 @@ using Transport.Abstraction;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using FileWorkerAgent;
+using Microsoft.Extensions.Logging;
 
 namespace DocumentSplitterAgent
 {
@@ -25,16 +26,19 @@ namespace DocumentSplitterAgent
     public class DocumentSplitter : AgentAbstract
     {
         private readonly IFileWorkerAgent _fileWorkerAgent;
+        private readonly ILogger<DocumentSplitter> _logger;
 
-        public DocumentSplitter(ITransportSender transport, IFileWorkerAgent fileWorkerAgent) : base(transport, AgentType.Splitter, "",
+        public DocumentSplitter(ITransportSender transport, IFileWorkerAgent fileWorkerAgent, ILogger<DocumentSplitter> logger) : base(transport, AgentType.Splitter, "",
             MessageType.Unknown, MessageType.SplitterTask)
         {
             _fileWorkerAgent = fileWorkerAgent;
+            _logger = logger;
         }
 
         public override async Task ProcessMessageAsync(AgentMessage message)
         {
             var task = message.Data.ToObject<TaskMessage>();
+            _logger.LogInformation($"Split processing {task.Id}");
             await using var dataStream =  await _fileWorkerAgent.GetFileStreamAsync(task.Id.ToString("N"));
             var document = WordprocessingDocument.Open(dataStream, false);
             XDocument styles = ExtractStylesPart(document);
@@ -74,10 +78,15 @@ namespace DocumentSplitterAgent
             
             for (int i = 0; i < resultStreams.Count; i++)
             {
+
                 if (Transport != null)
                 {
                     await using var ms = new MemoryStream();
                     await resultStreams[i].data.CopyToAsync(ms);
+                    var bytes = ms.ToArray();
+                    var id = Guid.NewGuid();
+                    await _fileWorkerAgent.UploadFileAsync(id.ToString("N"), bytes);
+
                     await Transport.SendAsync(MessageType.WorkerTask.ToString(), new AgentMessage<TaskMessage>
                     {
                         Author = this,
@@ -85,6 +94,7 @@ namespace DocumentSplitterAgent
                         Data = new TaskMessage
                         {
                             Creator = task.Creator,
+                            Id = id,
                             ParentId = task.Id,
                             Name = $"{task.Name}->{resultStreams[i].name}",
                             Data = ms.ToArray(),

@@ -44,7 +44,7 @@ namespace Transport.Kafka
             var rpcConsumer = new ConsumerBuilder<string, string>(config).Build();
             rpcConsumer.Subscribe(rpcQueueTopic);
 
-            Task.Run(() => ListenMsg(consumer, cancellationToken), cancellationToken);
+            Task.Run(() => ListenMsg(id, consumer, cancellationToken), cancellationToken);
             Task.Run(() => ListenRpc(rpcConsumer, cancellationToken), cancellationToken);
         }
 
@@ -53,7 +53,7 @@ namespace Transport.Kafka
             Subscribe(id, rpcQueueTopic, CancellationToken.None, queueTopic);
         }
 
-        private async Task ListenMsg(IConsumer<string, byte[]> consumer, CancellationToken cancellationToken)
+        private async Task ListenMsg(string id, IConsumer<string, byte[]> consumer, CancellationToken cancellationToken)
         {
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -62,7 +62,7 @@ namespace Transport.Kafka
                     var msg = consumer.Consume(cancellationToken);
                     var forceBytes = msg.Message.Headers.FirstOrDefault(x => x.Key == "ForceBytes") != null;
                     if (OnConsumed != null)
-                        await OnConsumed(msg.Message.Value, msg.Topic, forceBytes,
+                        await OnConsumed(id, msg.Message.Value, msg.Topic, forceBytes,
                             msg.Message.Headers.ToDictionary(s => s.Key,
                                 v => Encoding.UTF8.GetString(v.GetValueBytes())));
                 }

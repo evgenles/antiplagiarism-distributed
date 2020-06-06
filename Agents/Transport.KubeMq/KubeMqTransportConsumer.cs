@@ -26,13 +26,13 @@ namespace Transport.KubeMq
             _logger.LogError(eventReceive, "Error excepted while consuming from kubeMQ");
         }
 
-        private async void HandleIncomingEvents(EventReceive eventReceive)
+        private async void HandleIncomingEvents(EventReceive eventReceive, string id)
         {
             try
             {
                 if (OnConsumed != null)
                 {
-                    await OnConsumed(eventReceive.Body, eventReceive.Channel,
+                    await OnConsumed(id, eventReceive.Body, eventReceive.Channel,
                         eventReceive.Tags.ContainsKey("ForceBytes"),
                         eventReceive.Tags
                     );
@@ -105,7 +105,7 @@ namespace Transport.KubeMq
                 {
                     SubscribeRequest subscribeRequest = new SubscribeRequest(SubscribeType.Events,
                         $"{id}{Guid.NewGuid()}", channel, EventsStoreType.Undefined, 0, id);
-                    subscriber.SubscribeToEvents(subscribeRequest, HandleIncomingEvents, ErrorDelegate,
+                    subscriber.SubscribeToEvents(subscribeRequest, r=> HandleIncomingEvents(r, id), ErrorDelegate,
                         cancellationToken);
                 }
 
