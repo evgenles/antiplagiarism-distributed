@@ -27,6 +27,8 @@ namespace Agent.Abstract
 
         public string MachineName { get; }
 
+        public bool AllowConcurrency { get; set; } = true;
+
         public Guid Id { get; }
 
         public AgentState State { get; set; }

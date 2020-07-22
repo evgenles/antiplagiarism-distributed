@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <TargetFramework>netcoreapp3.1</TargetFramework>
+        <RuntimeIdentifiers>win-x64;</RuntimeIdentifiers>
     </PropertyGroup>
 
     <ItemGroup>
@@ -8,7 +9,7 @@
     </ItemGroup>
     
     <ItemGroup>
-        <PackageReference Include="FlaUI.UIA3" Version="3.1.0" />
+        <PackageReference Include="FlaUI.UIA3" Version="3.2.0" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.4" />
         <PackageReference Include="TextCopy" Version="4.2.0" />
     </ItemGroup>

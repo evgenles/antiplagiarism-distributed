@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Agent.Abstract;
 using Agent.Abstract.Models;
 using Microsoft.Extensions.Logging;
@@ -13,7 +14,7 @@ namespace DbWorkerAgent
         private IMongoCollection<DbTask> _taskCollection;
 
         public DbWorkerAgentImpl(ITransportSender transport, ILogger<DbWorkerAgentImpl> logger) : base(transport,
-            AgentType.DbManager, "", MessageType.DbRequest, MessageType.SplitterTask, MessageType.WorkerTask)
+            AgentType.DbManager, "", MessageType.DbRequest, MessageType.SplitterTask, MessageType.WorkerTask, MessageType.TaskStat)
         {
             _logger = logger;
             var client = new MongoClient("mongodb://root:example@localhost");
@@ -62,6 +63,7 @@ namespace DbWorkerAgent
                     RequiredSubtype = taskMsg.Data.RequiredSubtype,
                     UniquePercentage = taskMsg.Data.UniquePercentage
                 });
+                parent.StartDate = taskMsg.Data.StartDate;
 
                 await _taskCollection.ReplaceOneAsync(x=>x.Id == parent.Id, parent);
             }

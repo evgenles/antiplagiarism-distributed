@@ -1,4 +1,6 @@
-﻿namespace AdvegoPlagiatusWorker
+﻿using System.Collections.Generic;
+
+namespace AdvegoPlagiatusWorker
 {
     public class AdvegoResult
     {
@@ -8,5 +10,7 @@
         public double DocumentChecked { get; set; } = 0;
         public double SimilarDocument { get; set; } = 0;
         public double Errors { get; set; } = 0;
+        
+        public List<MatchAdvego> Detailed { get; set; } = new List<MatchAdvego>();
     }
 }

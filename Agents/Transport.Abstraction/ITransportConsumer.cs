@@ -7,10 +7,11 @@ namespace Transport.Abstraction
 {
     public interface ITransportConsumer
     {
-        void Subscribe(string id, string rpcQueueTopic, params string[] queueTopic);
+        void Subscribe(string id, string rpcQueueTopic,  Dictionary<string, CancellationToken>  queueTopic);
+        void SubscribeOne(string id, string topic, CancellationToken token);
 
         void Subscribe(string id, string rpcQueueTopic, CancellationToken cancellationToken,
-            params string[] queueTopic);
+            Dictionary<string, CancellationToken>  queueTopic);
         event ConsumedEventHandler OnConsumed;
         event RpcRequestEventHandler OnRpcRequest;
 

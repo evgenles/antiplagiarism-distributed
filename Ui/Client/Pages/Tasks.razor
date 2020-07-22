@@ -5,6 +5,8 @@
 @using Radzen
 @using Ui.Client.Pages.TaskDetail
 @using Ui.Shared
+@using System.Text.Json
+@using System.Text.Encodings.Web
 
 @inject NavigationManager NavigationManager
 
@@ -118,30 +120,42 @@
 
         _hubConnection.On<TaskWithSubTasks>(SignalRMessages.TaskStateChanged.ToString(), (msg) =>
         {
-            taskMessages[msg.Id] = msg;
-            // switch (msg.State)
-            // {
-            //     case AgentState.Connected:
-            //         connectionMessages.Add(msg);
-            //         break;
-            //         
-            //     case AgentState.Disconnected:
-            //         connectionMessages.RemoveAll(x => x.Who.Id == msg.Who.Id);
-            //         break;
-            //         
-            //     default:
-            //         var connection = connectionMessages.FirstOrDefault(x => x.Who.Id == msg.Who.Id);
-            //         if (connection != null)
-            //         {
-            //             connection.State = msg.State;
-            //         }
-            //         else
-            //         {
-            //             connectionMessages.Add(msg);
-            //         }
-            //         break;
-            // }
-            
+            if (taskMessages.TryGetValue(msg.Id, out var currentTask))
+            {
+                currentTask.State = msg.State;
+                if (msg.Children?.Any() ?? false) currentTask.Children = msg.Children;
+                currentTask.ProcessPercentage = msg.ProcessPercentage;
+                currentTask.ErrorPercentage = msg.ErrorPercentage;
+                currentTask.UniquePercentage = msg.UniquePercentage;
+                if (!string.IsNullOrEmpty(msg.Report)) currentTask.Report = msg.Report;
+
+            }
+            else if (msg.ParentId != default && taskMessages.TryGetValue(msg.ParentId, out currentTask))
+            {
+                var child = currentTask.Children?.FirstOrDefault(x => x.Id == msg.Id);
+                if (child != null)
+                {
+                    child.ProcessPercentage = msg.ProcessPercentage;
+                    child.ErrorPercentage = msg.ErrorPercentage;
+                    child.UniquePercentage = msg.UniquePercentage;
+                    if (msg.StartDate != DateTime.MinValue)
+                    {
+                        child.StartDate = msg.StartDate;
+                        if (currentTask.StartDate == DateTime.MinValue) currentTask.StartDate = child.StartDate;
+                    }
+                    if (!string.IsNullOrEmpty(child.Report)) child.Report = msg.Report;
+                }
+                else
+                {
+                    currentTask.Children ??= new List<TaskWithSubTasks>();
+                    currentTask.Children.Add(msg);
+                }
+            }
+            else
+            {
+                taskMessages[msg.Id] = msg;
+            }
+
             StateHasChanged();
         });
 

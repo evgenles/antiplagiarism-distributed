@@ -6,7 +6,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Agents\DocumentSplitterAgent\DocumentSplitterAgent.csproj" />
+      <ProjectReference Include="..\Agents\AdvegoPlagiatusWorker\AdvegoPlagiatusWorker.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.1.4" />
     </ItemGroup>
 
 </Project>

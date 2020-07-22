@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Agent.Abstract;
 using Agent.Abstract.Models;
+using FlaUI.Core;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Logging;
 using FlaUI.UIA3;
@@ -23,9 +25,10 @@ namespace AdvegoPlagiatusWorker
             base(transport, AgentType.Worker, "Advego", MessageType.Unknown, MessageType.WorkerTask)
         {
             _logger = logger;
+            AllowConcurrency = false;
         }
 
-        private async Task<bool> StartAndCheckForUpdate()
+        private async Task<bool> StartAndCheckForUpdateAsync()
         {
             var launchPath = Path.Combine(AdvegoPath, "launch.exe");
             if (!File.Exists(launchPath)) return false;
@@ -60,24 +63,24 @@ namespace AdvegoPlagiatusWorker
             return true;
         }
 
-        private (UIA3Automation automation, Window window) AttachToExecutable()
+        private (UIA3Automation automation, Window window, Application app) AttachToExecutable()
         {
             var executable = Path.Combine(AdvegoPath, "Plagiatus.exe");
             var app2 = FlaUI.Core.Application.Attach(executable, 0);
             var automation = new UIA3Automation();
-            var y = app2.GetAllTopLevelWindows(automation);
-            if (y.Length == 0)
+            var y = app2.GetMainWindow(automation, TimeSpan.FromSeconds(2));
+            if (y == null)
             {
                 app2 = FlaUI.Core.Application.Attach(executable, 1);
-                y = app2.GetAllTopLevelWindows(automation);
+                y = app2.GetMainWindow(automation, TimeSpan.FromSeconds(2));
             }
 
             var window = app2.GetMainWindow(automation);
             Console.WriteLine(window.Title);
-            return (automation, window);
+            return (automation, window, app2);
         }
 
-        private async Task OpenFile(AutomationElement window, string filePath)
+        private async Task OpenFileAsync(AutomationElement window, string filePath)
         {
             var loadFromFile = window.FindFirstDescendant(x => x.ByName("Загрузить текст из документа"))
                 .Parent.FindFirstDescendant(x => x.ByControlType(FlaUI.Core.Definitions.ControlType.Button)).AsButton();
@@ -94,7 +97,7 @@ namespace AdvegoPlagiatusWorker
             await Task.Delay(2000);
         }
 
-        private async Task<AdvegoResult> MakeCheck(AutomationElement window, bool isFullCheck)
+        private async Task<AdvegoResult> MakeCheckAsync(AutomationElement window, bool isFullCheck, Guid taskId, Guid parentId)
         {
             var checkButton = window
                 .FindFirstDescendant(x => x.ByName(isFullCheck ? "Полная проверка" : "Быстрая проверка")).AsButton();
@@ -133,7 +136,7 @@ namespace AdvegoPlagiatusWorker
 
                     _logger.LogInformation(
                         $"Process complited: {result.Processed}%. Unique words: {result.UniqueWords}%. UniuePhrases: {result.UniquePhrases}%");
-                   _logger.LogInformation(
+                    _logger.LogInformation(
                         $"Documents checked: {result.DocumentChecked}. Found {result.SimilarDocument}. Can`t open: {result.Errors}");
                     return result;
                 }
@@ -155,6 +158,19 @@ namespace AdvegoPlagiatusWorker
 
                         _logger.LogInformation(
                             $"Processed: {result.Processed}%. Unique words: {result.UniqueWords}%. UniuePhrases: {result.UniquePhrases}%");
+                        await Transport.SendAsync(MessageType.TaskStat.ToString(), new AgentMessage<TaskMessage>
+                        {
+                            Author = this,
+                            MessageType = MessageType.TaskStat,
+                            Data = new TaskMessage
+                            {
+                                ParentId = parentId,
+                                Id = taskId,
+                                State = TaskState.Active,
+                                ProcessPercentage = result.Processed,
+                                UniquePercentage = result.UniquePhrases
+                            }
+                        });
                     }
 
                     await Task.Delay(5000);
@@ -193,12 +209,12 @@ namespace AdvegoPlagiatusWorker
                         if (line.StartsWith("##########")) docs = true;
                         else if (docs)
                         {
-                            var splitted = line.Split('|', '-');
+                            var splitted = line.Split('|', ' ');
                             detailed.Add(new MatchAdvego
                             {
                                 Matches = double.Parse(splitted[0]),
                                 Rerite = double.Parse(splitted[1].Trim()),
-                                Url = splitted[2].Trim()
+                                Url = splitted[3].Trim()
                             });
                         }
                     }
@@ -210,15 +226,58 @@ namespace AdvegoPlagiatusWorker
             }
             catch (Exception e)
             {
-               _logger.LogError(e, "Can`t get detailed info");
+                _logger.LogError(e, "Can`t get detailed info");
             }
 
             return null;
         }
 
-        public override Task ProcessMessageAsync(AgentMessage message)
+        public override async Task ProcessMessageAsync(AgentMessage message)
         {
-            throw new NotImplementedException();
+            var tMessage = message.To<TaskMessage>();
+            var path = $"{tMessage.Data.Id.ToString()}.docx";
+            if (!File.Exists(path)) await File.WriteAllBytesAsync(path, tMessage.Data.Data);
+            var isStarted = await StartAndCheckForUpdateAsync();
+            if (isStarted)
+            {
+               
+                var (automation, window, app) = AttachToExecutable();
+
+                await OpenFileAsync(window, Path.Combine(Directory.GetCurrentDirectory(), path));
+                
+                await Transport.SendAsync(MessageType.TaskStat.ToString(), new AgentMessage<TaskMessage>
+                {
+                    Author = this,
+                    MessageType = MessageType.TaskStat,
+                    Data = new TaskMessage
+                    {
+                        ParentId = tMessage.Data.ParentId,
+                        StartDate = DateTime.Now,
+                        Id = tMessage.Data.Id,
+                        State = TaskState.Active
+                    }
+                });
+                
+                var baseResult = await MakeCheckAsync(window, false, tMessage.Data.Id, tMessage.Data.ParentId);
+                var detailedResult = await GetDetailedResult(window, automation);
+                baseResult.Detailed = detailedResult;
+                app.Close();
+                await Transport.SendAsync(MessageType.TaskStat.ToString(), new AgentMessage<TaskMessage>
+                {
+                    Author = this,
+                    MessageType = MessageType.TaskStat,
+                    Data = new TaskMessage
+                    {
+                        ParentId = tMessage.Data.ParentId,
+                        Id = tMessage.Data.Id,
+                        State = TaskState.Finished,
+                        ProcessPercentage = 100,
+                        UniquePercentage = baseResult.UniquePhrases,
+                        ErrorPercentage = baseResult.Errors,
+                        Report = JsonSerializer.Serialize(baseResult)
+                    }
+                });
+            }
         }
 
         public override Task<AgentMessage> ProcessRpcAsync(AgentMessage<RpcRequest> message)
