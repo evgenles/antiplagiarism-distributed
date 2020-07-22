@@ -144,6 +144,9 @@
                         if (currentTask.StartDate == DateTime.MinValue) currentTask.StartDate = child.StartDate;
                     }
                     if (!string.IsNullOrEmpty(child.Report)) child.Report = msg.Report;
+                    currentTask.ProcessPercentage = currentTask.Children.Sum(x => x.ProcessPercentage) / currentTask.Children.Count;
+                    currentTask.UniquePercentage = currentTask.Children.Sum(x => x.UniquePercentage) / currentTask.Children.Count;
+                    currentTask.ErrorPercentage = currentTask.Children.Sum(x => x.ErrorPercentage) / currentTask.Children.Count;
                 }
                 else
                 {

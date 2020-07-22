@@ -15,6 +15,8 @@ namespace DbWorkerAgent
 
         public string FileName { get; set; }
 
+        public string Report { get; set; }
+
         public DateTime StartDate { get; set; }
 
         public TaskState State { get; set; }

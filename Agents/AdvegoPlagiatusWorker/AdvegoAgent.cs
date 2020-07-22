@@ -97,7 +97,8 @@ namespace AdvegoPlagiatusWorker
             await Task.Delay(2000);
         }
 
-        private async Task<AdvegoResult> MakeCheckAsync(AutomationElement window, bool isFullCheck, Guid taskId, Guid parentId)
+        private async Task<AdvegoResult> MakeCheckAsync(AutomationElement window, bool isFullCheck, Guid taskId,
+            Guid parentId)
         {
             var checkButton = window
                 .FindFirstDescendant(x => x.ByName(isFullCheck ? "Полная проверка" : "Быстрая проверка")).AsButton();
@@ -182,6 +183,7 @@ namespace AdvegoPlagiatusWorker
 
         private async Task<List<MatchAdvego>> GetDetailedResult(AutomationElement window, UIA3Automation automation)
         {
+            string text = null;
             try
             {
                 window.FindFirstDescendant(x => x.ByName("Посмотреть результаты проверки Enter")).AsButton().Invoke();
@@ -198,7 +200,7 @@ namespace AdvegoPlagiatusWorker
                 resultMenu.Click();
                 automation.GetDesktop().FindFirstDescendant(x => x.ByName("Копировать результат проверки Ctrl+Shift+3"))
                     .AsMenuItem().Invoke();
-                var text = await ClipboardService.GetTextAsync();
+                text = await ClipboardService.GetTextAsync();
                 if (text != null)
                 {
                     var lines = text.Split(Environment.NewLine);
@@ -226,7 +228,7 @@ namespace AdvegoPlagiatusWorker
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Can`t get detailed info");
+                _logger.LogError(e, "Can`t get detailed info, {detailedText}", text);
             }
 
             return null;
@@ -240,11 +242,10 @@ namespace AdvegoPlagiatusWorker
             var isStarted = await StartAndCheckForUpdateAsync();
             if (isStarted)
             {
-               
                 var (automation, window, app) = AttachToExecutable();
 
                 await OpenFileAsync(window, Path.Combine(Directory.GetCurrentDirectory(), path));
-                
+
                 await Transport.SendAsync(MessageType.TaskStat.ToString(), new AgentMessage<TaskMessage>
                 {
                     Author = this,
@@ -257,7 +258,7 @@ namespace AdvegoPlagiatusWorker
                         State = TaskState.Active
                     }
                 });
-                
+
                 var baseResult = await MakeCheckAsync(window, false, tMessage.Data.Id, tMessage.Data.ParentId);
                 var detailedResult = await GetDetailedResult(window, automation);
                 baseResult.Detailed = detailedResult;
