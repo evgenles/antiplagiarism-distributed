@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Agent.Abstract;
@@ -91,8 +92,41 @@ namespace DbWorkerAgent
 
         public override async Task<AgentMessage> ProcessRpcAsync(AgentMessage<RpcRequest> message)
         {
-            if (message.MessageType == MessageType.FileRequest && message.Data.Args.Length > 0)
+            if (message.Data.Type == RpcRequestType.GetAllTasks)
             {
+                var tasks = await _taskCollection.Find(x => true).ToListAsync();
+                var taskMsg = tasks.ToDictionary(x=>x.Id.ToString(), x => new TaskWithSubTasks
+                {
+                    Creator = x.Creator,
+                    Id = x.Id,
+                    Name = x.Name,
+                    State = x.State,
+                    ErrorPercentage = x.ErrorPercentage,
+                    ProcessPercentage = x.ProcessPercentage,
+                    UniquePercentage = x.UniquePercentage,
+                    FileName = x.FileName,
+                    Report = x.Report,
+                    StartDate = x.StartDate,
+                    Children = x.SubTasks?.Select(y => new TaskWithSubTasks
+                    {
+                        Creator = y.Creator,
+                        Id = y.Id,
+                        Name = y.Name,
+                        State = y.State,
+                        ErrorPercentage = y.ErrorPercentage,
+                        ProcessPercentage = y.ProcessPercentage,
+                        UniquePercentage = y.UniquePercentage,
+                        FileName = y.FileName,
+                        Report = y.Report,
+                        StartDate = y.StartDate,
+                    }).ToList()
+                });
+                return new AgentMessage<Dictionary<string, TaskWithSubTasks>>()
+                {
+                    Author = this,
+                    Data = taskMsg,
+                    SendDate = DateTime.Now
+                };
             }
 
             return null;

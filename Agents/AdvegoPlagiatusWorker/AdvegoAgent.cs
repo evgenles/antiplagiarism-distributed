@@ -211,13 +211,20 @@ namespace AdvegoPlagiatusWorker
                         if (line.StartsWith("##########")) docs = true;
                         else if (docs)
                         {
-                            var splitted = line.Split('|', ' ');
-                            detailed.Add(new MatchAdvego
+                            var splitted = line.Split(' ');
+                            if (splitted.Length > 2)
                             {
-                                Matches = double.Parse(splitted[0]),
-                                Rerite = double.Parse(splitted[1].Trim()),
-                                Url = splitted[3].Trim()
-                            });
+                                var matchRerite = splitted[0].Split('|');
+                                if (matchRerite.Length > 1)
+                                {
+                                    detailed.Add(new MatchAdvego
+                                    {
+                                        Matches = double.TryParse(matchRerite[0], out var match) ? match : 0,
+                                        Rerite = double.TryParse(matchRerite[1].Trim(), out var rerite) ? rerite : 0,
+                                        Url = splitted[2].Trim()
+                                    });
+                                }
+                            }
                         }
                     }
 

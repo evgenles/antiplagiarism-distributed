@@ -86,7 +86,7 @@ namespace AgentLoader
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError($"Can`t process rpc from {topic} by agent {agent}, msg: {result}");
+                    _logger.LogError(e, $"Can`t process rpc from {topic} by agent {agent}, msg: {result}");
                 }
 
                 return null;
