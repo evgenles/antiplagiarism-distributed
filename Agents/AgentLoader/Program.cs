@@ -26,7 +26,7 @@ namespace AgentLoader
         public static void Main(string[] args)
         {
             Console.WriteLine($"PID: {Process.GetCurrentProcess().Id}");
-            var agentsFolder = Path.Combine(Path.GetDirectoryName(typeof(Program).Assembly.Location), "Agents");
+            var agentsFolder = Path.Combine(Path.GetDirectoryName(typeof(Program).Assembly.Location)!, "Agents");
             if (Directory.Exists(agentsFolder))
             {
                 foreach (var directory in Directory.GetDirectories(agentsFolder))
@@ -58,11 +58,6 @@ namespace AgentLoader
                     var agents = AgentAssemblyLoaderContext.AgentTypes;
                     agents.ForEach(type => services.AddTransient(type));
                     services.AddSingleton<IAgentProvider, AgentProvider>();
-                    // services.TryAddEnumerable(agents.Select(agentType =>
-                    //     ServiceDescriptor.Singleton<AgentAbstract>(
-                    //         sp =>
-                    //             Activator.CreateInstance(agentType, 
-                    //                 sp.GetService<ITransportSender>()))));
                     Console.WriteLine($"Loaded {agents.Count} agent in {AgentContexts.Count} context");
 
                     services.AddHostedService<AgentWorker>();

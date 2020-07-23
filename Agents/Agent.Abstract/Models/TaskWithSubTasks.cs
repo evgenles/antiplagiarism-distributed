@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
-using Agent.Abstract.Models;
 
-namespace Ui.Shared
+namespace Agent.Abstract.Models
 {
     public class TaskWithSubTasks : TaskMessage
     {

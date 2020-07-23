@@ -64,16 +64,44 @@ namespace AgentLoader
         private void AgentExecutable(AgentAbstract agent, CancellationToken stoppingToken)
         {
             agent.StoppingToken = stoppingToken;
-            var agentSupported = agent.SupportedMessage.Select(x => x.ToString())
-                .ToArray();
+            var agentSupported = new Dictionary<string, CancellationTokenSource>(
+                agent.SupportedMessage.Select(x => new KeyValuePair<string, CancellationTokenSource>(
+                    x.ToString(), new CancellationTokenSource())));
             string agentId = $"{agent.Type}_{agent.SubType}";
             _consumer.Subscribe(agentId, agent.RpcMessageType.ToString(), stoppingToken,
-                agentSupported
+                agentSupported.ToDictionary(x => x.Key,
+                    x => x.Value.Token)
             );
-            _consumer.OnConsumed += async (id, result, topic, forceBytes, headers) =>
+            _consumer.OnConsumed += ProcessMessage;
+            _consumer.OnRpcRequest += async (result, topic) =>
             {
-                if (agentId == id && agentSupported.Contains(topic))
+                try
                 {
+                    if (agent.RpcMessageType.ToString() == topic)
+                    {
+                        return JsonSerializer.Serialize(
+                            await agent.ProcessRpcAsync(JsonSerializer.Deserialize<AgentMessage>(result)
+                                .To<RpcRequest>()));
+                    }
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, $"Can`t process rpc from {topic} by agent {agent}, msg: {result}");
+                }
+
+                return null;
+            };
+
+            async Task ProcessMessage(string id, byte[] result, string topic, bool forceBytes,
+                Dictionary<string, string> headers)
+            {
+                if (agentId == id && agentSupported.Keys.Contains(topic))
+                {
+                    if (!agent.AllowConcurrency)
+                    {
+                        agentSupported[topic].Cancel();
+                        _consumer.OnConsumed -= ProcessMessage;
+                    }
                     if (!forceBytes)
                     {
                         var msg = JsonSerializer.Deserialize<AgentMessage>(result);
@@ -90,26 +118,17 @@ namespace AgentLoader
                     {
                         await agent.ProcessMessageAsync(result, headers);
                     }
-                }
-            };
-            _consumer.OnRpcRequest += async (result, topic) =>
-            {
-                try
-                {
-                    if (agent.RpcMessageType.ToString() == topic)
+                    if (!agent.AllowConcurrency)
                     {
-                        return JsonSerializer.Serialize(
-                            await agent.ProcessRpcAsync(JsonSerializer.Deserialize<AgentMessage>(result)
-                                .To<RpcRequest>()));
+                        var nSource = new CancellationTokenSource();
+                        agentSupported[topic] = nSource;
+                        _consumer.SubscribeOne(id, topic, nSource.Token);
+                        _consumer.OnConsumed += ProcessMessage;
                     }
                 }
-                catch (Exception e)
-                {
-                    _logger.LogError($"Can`t process rpc from {topic} by agent {agent}, msg: {result}");
-                }
 
-                return null;
-            };
+                ;
+            }
         }
     }
 }

@@ -28,6 +28,8 @@ namespace Agent.Abstract.Models
         public double UniquePercentage { get; set; }
         
         public double ErrorPercentage { get; set; }
+        
+        public string Report { get; set; }
 
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -52,7 +53,7 @@ namespace Transport.KubeMq
                 {
                     foreach (var inv in OnRpcRequest.GetInvocationList())
                     {
-                        var result = ((Task<string>)inv
+                        var result = ((Task<string>) inv
                                 .DynamicInvoke(Encoding.UTF8.GetString(eventReceive.Body),
                                     eventReceive.Channel))?.ConfigureAwait(false)
                             .GetAwaiter()
@@ -71,6 +72,7 @@ namespace Transport.KubeMq
                         }
                     }
                 }
+
                 return new Response(eventReceive)
                 {
                     Error = "Cant find rpc agent",
@@ -90,23 +92,39 @@ namespace Transport.KubeMq
             }
         }
 
-        public void Subscribe(string id, string rpcQueueTopic, params string[] queueTopic)
+        public void Subscribe(string id, string rpcQueueTopic, Dictionary<string, CancellationToken> queueTopic)
         {
             Subscribe(id, rpcQueueTopic, CancellationToken.None, queueTopic);
         }
 
-        public void Subscribe(string id, string rpcQueueTopic, CancellationToken cancellationToken,
-            params string[] queueTopic)
+        public void SubscribeOne(string id, string topic, CancellationToken token)
         {
             try
             {
                 Subscriber subscriber = new Subscriber(_logger);
-                foreach (var channel in queueTopic)
+                SubscribeRequest subscribeRequest = new SubscribeRequest(SubscribeType.EventsStore,
+                    $"{id}{Guid.NewGuid()}", topic, EventsStoreType.StartNewOnly, 0, id);
+                subscriber.SubscribeToEvents(subscribeRequest, r => HandleIncomingEvents(r, id), ErrorDelegate,
+                    token);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Can`t subscribe to events");
+            }
+        }
+
+        public void Subscribe(string id, string rpcQueueTopic, CancellationToken cancellationToken,
+            Dictionary<string, CancellationToken> queueTopic)
+        {
+            try
+            {
+                Subscriber subscriber = new Subscriber(_logger);
+                foreach (var (channel, token) in queueTopic)
                 {
-                    SubscribeRequest subscribeRequest = new SubscribeRequest(SubscribeType.Events,
-                        $"{id}{Guid.NewGuid()}", channel, EventsStoreType.Undefined, 0, id);
-                    subscriber.SubscribeToEvents(subscribeRequest, r=> HandleIncomingEvents(r, id), ErrorDelegate,
-                        cancellationToken);
+                    SubscribeRequest subscribeRequest = new SubscribeRequest(SubscribeType.EventsStore,
+                        $"{id}{Guid.NewGuid()}", channel, EventsStoreType.StartNewOnly, 0, id);
+                    subscriber.SubscribeToEvents(subscribeRequest, r => HandleIncomingEvents(r, id), ErrorDelegate,
+                        token);
                 }
 
                 Responder responder = new Responder();

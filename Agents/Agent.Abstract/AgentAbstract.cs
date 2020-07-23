@@ -27,6 +27,8 @@ namespace Agent.Abstract
 
         public string MachineName { get; }
 
+        public bool AllowConcurrency { get; set; } = true;
+
         public Guid Id { get; }
 
         public AgentState State { get; set; }
@@ -81,7 +83,7 @@ namespace Agent.Abstract
         
         public virtual async Task<AgentMessage<TResp>> CallAsync<TResp>(AgentMessage<RpcRequest> msg, TimeSpan timeout) where TResp : class
         {
-            var resp =  await Transport.CallServiceAsync<AgentMessage<RpcRequest>, AgentMessage>(MessageType.ConnectionRequest.ToString(), msg, timeout);
+            var resp =  await Transport.CallServiceAsync<AgentMessage<RpcRequest>, AgentMessage>(msg.MessageType.ToString(), msg, timeout);
             return resp?.To<TResp>();
         }
 

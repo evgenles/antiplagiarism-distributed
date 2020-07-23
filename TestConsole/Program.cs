@@ -5,25 +5,28 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Threading.Tasks;
+using AdvegoPlagiatusWorker;
 using Agent.Abstract.Models;
-using DocumentSplitterAgent;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace TestConsole
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
-            var agent = new DocumentSplitter(null);
-            agent.ProcessMessageAsync(new AgentMessage
+            var host = Host.CreateDefaultBuilder().ConfigureLogging(x => x.AddConsole()).Build();
+            var agent = new AdvegoAgent(null, host.Services.GetService<ILogger<AdvegoAgent>>());
+            await agent.ProcessMessageAsync(new AgentMessage<TaskMessage>()
+            {
+                Data = new TaskMessage
                 {
-                    Data = new TaskMessage
-                    {
-                        //   Data = File.OpenRead("diploma2.docx")
-                    }
-                })
-                .GetAwaiter()
-                .GetResult();
+                    Id = Guid.NewGuid()
+                }
+            });
         }
     }
 }

@@ -94,10 +94,11 @@ namespace DocumentSplitterAgent
                         Data = new TaskMessage
                         {
                             Creator = task.Creator,
+                            StartDate = DateTime.Now,
                             Id = id,
                             ParentId = task.Id,
                             Name = $"{task.Name}->{resultStreams[i].name}",
-                            Data = ms.ToArray(),
+                            Data = bytes,
                             RequiredSubtype = task.RequiredSubtype
                         }
                     });

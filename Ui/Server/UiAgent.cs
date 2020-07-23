@@ -23,7 +23,8 @@ namespace Ui.Server
 
         public UiAgent(IHubContext<AgentHub> agentUiHub, IHubContext<TaskHub> taskUiHub, ILogger<UiAgent> logger,
             ITransportSender transportSender, IFileWorkerAgent fileWorkerAgent) :
-            base(transportSender, AgentType.Ui, "", MessageType.Unknown, MessageType.Connection, MessageType.TaskStat)
+            base(transportSender, AgentType.Ui, "", MessageType.Unknown, MessageType.Connection, MessageType.WorkerTask,
+                MessageType.TaskStat)
         {
             _agentUiHub = agentUiHub;
             _taskUiHub = taskUiHub;
@@ -43,6 +44,12 @@ namespace Ui.Server
                         connectionMessage.Who ??= message.Author;
                         await _agentUiHub.Clients.All.SendAsync(SignalRMessages.AgentConnections.ToString(),
                             connectionMessage);
+                        break;
+                    case MessageType.WorkerTask:
+                    case MessageType.TaskStat:
+                        var task = message.Data.ToObject<TaskMessage>();
+                        task.Data = new byte[0];
+                        await _taskUiHub.Clients.All.SendAsync(SignalRMessages.TaskStateChanged.ToString(), task);
                         break;
                 }
             }
@@ -70,13 +77,17 @@ namespace Ui.Server
                 return false;
             }
         }
-        public ValueTask<bool> CreateNewTask(TaskMessage taskMessage) =>
-            Transport.SendAsync(MessageType.SplitterTask.ToString(), new AgentMessage
+
+        public ValueTask<bool> CreateNewTask(TaskMessage taskMessage)
+        {
+            taskMessage.StartDate = DateTime.Now;
+            return Transport.SendAsync(MessageType.SplitterTask.ToString(), new AgentMessage
             {
                 Author = new Author(this),
                 MessageType = MessageType.SplitterTask,
                 SendDate = DateTime.Now,
                 Data = taskMessage
             });
+        }
     }
 }

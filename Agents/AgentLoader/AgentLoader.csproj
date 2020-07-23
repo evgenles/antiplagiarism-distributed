@@ -15,4 +15,10 @@
       <ProjectReference Include="..\Transport.Kafka\Transport.Kafka.csproj" />
       <ProjectReference Include="..\Transport.KubeMq\Transport.KubeMq.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="e6604137-ad6a-4413-a75e-ca6d630c642e.docx" />
+      <None Remove="aeead356-2355-4791-bdd5-1d91b1af58e4.docx" />
+      <None Remove="695ae56f-1853-4dcb-b2a3-848a7fa7b677.docx" />
+    </ItemGroup>
 </Project>

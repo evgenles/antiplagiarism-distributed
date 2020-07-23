@@ -5,6 +5,8 @@
 @using Radzen
 @using Ui.Client.Pages.TaskDetail
 @using Ui.Shared
+@using System.Text.Json
+@using System.Text.Encodings.Web
 
 @inject NavigationManager NavigationManager
 
@@ -12,18 +14,18 @@
     <div class="col-md-6" style="margin-bottom: 16px">
         <h2 class="text-center">Task List</h2>
 
-        <RadzenTree Data="@taskMessages.Values" Expand="@Expand" Change="@Change"
+        <RadzenTree Data="@taskMessages.Values.OrderByDescending(x=>x.StartDate)" Expand="@Expand" Change="@Change"
                     Style="width: 100%">
             <RadzenTreeLevel TextProperty="Name" ChildrenProperty="Children">
                 <Template>
                     @{
                         var task = context.Value as TaskWithSubTasks;
-                        string grad = (int) task.ProcessPercentage != 0 ? $"background: linear-gradient(90deg, #47c8b075 0%, #47c8b075 {(int) task.ProcessPercentage}%, transparent {(int) task.ProcessPercentage + 5}%);" : "";
-                        var style = $"width: 98%;{grad}";
                     }
-                    <div class="row" style="@style">
-                        <div class="col-sm-8" style="word-break: break-all;word-wrap: break-word">@task.Name</div>
+                    <div class="row" style="@($"width: 98%;background-color:{(Math.Abs(task.ProcessPercentage - 100) < 0.1?"#b3ffb326":"#fff98026")}")">
+                          <div class="col-sm-8" style="word-break: break-all;word-wrap: break-word">@task.Name</div>
                         <div class="col-sm-4">@task.StartDate</div>
+                        
+                        <div style="@($"height: 0.4em;background-color: green;width: {(int) task.ProcessPercentage}%;border-radius: 1em;opacity: 0.8;")"></div>
                     </div>
                 </Template>
             </RadzenTreeLevel>
@@ -31,12 +33,12 @@
                 <Template>
                     @{
                         var task = context.Value as TaskWithSubTasks;
-                        string grad = (int) task.ProcessPercentage != 0 ? $"background: linear-gradient(90deg, #47c8b075 0%, #47c8b075 {(int) task.ProcessPercentage}%, transparent {(int) task.ProcessPercentage + 5}%);" : "";
-                        var style = $"width: 98%;margin-left:0;{grad}";
                     }
-                    <div class="row" style="@style">
+                    <div class="row" style="width: 98%;margin-left:0;">
                         <div class="col-sm-8" style="word-break: break-all;word-wrap: break-word">@task.Name</div>
                         <div class="col-sm-4">@task.StartDate</div>
+                        
+                        <div style="@($"height: 0.4em;background-color: green;width: {(int) task.ProcessPercentage}%;border-radius: 1em;opacity: 0.8;")"></div>
                     </div>
                 </Template>
             </RadzenTreeLevel>
@@ -75,18 +77,12 @@
 @code {
     private HubConnection _hubConnection;
 
-    private Dictionary<Guid, TaskWithSubTasks> taskMessages = new  Dictionary<Guid, TaskWithSubTasks>
-    {
-        [Guid.NewGuid()] = new TaskWithSubTasks
-        {
-            Name = "test",
-            Creator = "I am"
-        }
-    };
+    private Dictionary<Guid, TaskWithSubTasks> taskMessages = new Dictionary<Guid, TaskWithSubTasks>();
 
-     bool isCreateEnabled = false;
-    
+    bool isCreateEnabled = false;
+
     TaskWithSubTasks selectedTask = null;
+
     void Change(TreeEventArgs args)
     {
         if (args.Value is TaskWithSubTasks task)
@@ -106,50 +102,84 @@
     async Task OnTaskCreate(TaskMessage task)
     {
         Console.WriteLine("Task create in task list called");
-        await _hubConnection.InvokeCoreAsync(SignalRMessages.CreateTask.ToString(), new[]{task});
+        await _hubConnection.InvokeCoreAsync(SignalRMessages.CreateTask.ToString(), new[] {task});
     }
+
     protected override async Task OnInitializedAsync()
     {
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(NavigationManager.ToAbsoluteUri("/taskHub"))
             .WithAutomaticReconnect()
-            .ConfigureLogging(x=>x.AddProvider(new ConsoleLogProvider()))
+            .ConfigureLogging(x => x.AddProvider(new ConsoleLogProvider()))
             .Build();
 
         _hubConnection.On<TaskWithSubTasks>(SignalRMessages.TaskStateChanged.ToString(), (msg) =>
         {
-            taskMessages[msg.Id] = msg;
-            // switch (msg.State)
-            // {
-            //     case AgentState.Connected:
-            //         connectionMessages.Add(msg);
-            //         break;
-            //         
-            //     case AgentState.Disconnected:
-            //         connectionMessages.RemoveAll(x => x.Who.Id == msg.Who.Id);
-            //         break;
-            //         
-            //     default:
-            //         var connection = connectionMessages.FirstOrDefault(x => x.Who.Id == msg.Who.Id);
-            //         if (connection != null)
-            //         {
-            //             connection.State = msg.State;
-            //         }
-            //         else
-            //         {
-            //             connectionMessages.Add(msg);
-            //         }
-            //         break;
-            // }
-            
+            if (taskMessages.TryGetValue(msg.Id, out var currentTask))
+            {
+                currentTask.State = msg.State;
+                if (msg.Children?.Any() ?? false) currentTask.Children = msg.Children;
+                currentTask.ProcessPercentage = msg.ProcessPercentage;
+                currentTask.ErrorPercentage = msg.ErrorPercentage;
+                currentTask.UniquePercentage = msg.UniquePercentage;
+                if (!string.IsNullOrEmpty(msg.Report)) currentTask.Report = msg.Report;
+            }
+            else if (msg.ParentId != default && taskMessages.TryGetValue(msg.ParentId, out currentTask))
+            {
+                var child = currentTask.Children?.FirstOrDefault(x => x.Id == msg.Id);
+                if (child != null)
+                {
+                    child.ProcessPercentage = msg.ProcessPercentage;
+                    child.ErrorPercentage = msg.ErrorPercentage;
+                    child.UniquePercentage = msg.UniquePercentage;
+                    if (msg.StartDate != DateTime.MinValue)
+                    {
+                        child.StartDate = msg.StartDate;
+                        if (currentTask.StartDate == DateTime.MinValue) currentTask.StartDate = child.StartDate;
+                    }
+                    if (!string.IsNullOrEmpty(child.Report)) child.Report = msg.Report;
+                    currentTask.ProcessPercentage = currentTask.Children.Sum(x => x.ProcessPercentage) / currentTask.Children.Count;
+                    currentTask.UniquePercentage = currentTask.Children.Sum(x => x.UniquePercentage) / currentTask.Children.Count;
+                    currentTask.ErrorPercentage = currentTask.Children.Sum(x => x.ErrorPercentage) / currentTask.Children.Count;
+                }
+                else
+                {
+                    currentTask.Children ??= new List<TaskWithSubTasks>();
+                    currentTask.Children.Add(msg);
+                }
+            }
+            else
+            {
+                taskMessages[msg.Id] = msg;
+            }
+
             StateHasChanged();
         });
 
-        _hubConnection.On<Dictionary<Guid, TaskWithSubTasks>>(SignalRMessages.TasksConnectAccepted.ToString(), (msg) =>
+        _hubConnection.On<Dictionary<string, TaskWithSubTasks>>(SignalRMessages.TasksConnectAccepted.ToString(), (msg) =>
         {
-            taskMessages = msg;
-            StateHasChanged();
+            try
+            {
+                taskMessages = msg.OrderByDescending(x => x.Value.StartDate).ToDictionary(x => Guid.Parse(x.Key),
+                    x =>
+                    {
+                        var task = x.Value;
+                        if (task.Children?.Count > 0)
+                        {
+                            task.ProcessPercentage = task.Children.Sum(y => y.ProcessPercentage) / task.Children.Count;
+                            task.ErrorPercentage = task.Children.Sum(y => y.ErrorPercentage) / task.Children.Count;
+                            task.UniquePercentage = task.Children.Sum(y => y.UniquePercentage) / task.Children.Count;
+                        }
+                        return task;
+                    });
+                StateHasChanged();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
         });
         await _hubConnection.StartAsync();
     }
+
 }

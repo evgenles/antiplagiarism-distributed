@@ -30,7 +30,7 @@ namespace Transport.KubeMq
         }
 
 
-        public ValueTask<bool> SendAsync(string receiver, byte[] data, bool forceBytes = true,
+        public ValueTask<bool> SendAsync(string receiver, byte[] data,  bool forceBytes = true,
             Dictionary<string, string> headers = null)
         {
             try
@@ -41,7 +41,7 @@ namespace Transport.KubeMq
                     ClientID = _id,
                     Body = data,
                     Tags = headers,
-                    Store = false
+                    Store = true
                 };
                 if (forceBytes) evt.Tags.Add("ForceBytes", "1");
                 _sender.SendEvent(evt);

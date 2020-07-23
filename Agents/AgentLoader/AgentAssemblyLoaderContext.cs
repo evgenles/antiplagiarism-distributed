@@ -11,6 +11,7 @@ namespace AgentLoader
     public class AgentAssemblyLoaderContext : AssemblyLoadContext
     {
         public static List<Type> AgentTypes { get; } = new List<Type>();
+        private AssemblyDependencyResolver _resolver;
 
         // static AgentAssemblyLoaderContext()
         // {
@@ -40,9 +41,10 @@ namespace AgentLoader
 
         private readonly string _path;
 
-        public AgentAssemblyLoaderContext(string path, params Type[] sharedTypes)
+        public AgentAssemblyLoaderContext(string path, params Type[] sharedTypes) : base(isCollectible:true)
         {
             _path = path;
+            _resolver = new AssemblyDependencyResolver(path);
 
             _loadedAssemblies = new List<Assembly>();
             _sharedAssemblies = new Dictionary<string, Assembly>();
@@ -58,13 +60,26 @@ namespace AgentLoader
                 _loadedAssemblies.Add(this.LoadFromAssemblyPath(dll));
             }
 
-            var agentTypes = _loadedAssemblies.SelectMany(asm => asm.GetTypes()
-                .Where(type => type.IsSubclassOf(typeof(AgentAbstract))))
-                .ToList();
-
-            AgentTypes.AddRange(agentTypes);
+            foreach (var assembly in _loadedAssemblies)
+            {
+                try
+                {
+                    var t = assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(AgentAbstract)))
+                        .ToList();
+                    AgentTypes.AddRange(t);
+                    if(t.Count>0) Console.WriteLine($"Loaded {t.Count} agents from path {assembly.Location}");
+                }
+                catch (Exception e)
+                {
+                    // ignored
+                }
+            }
+            // var agentTypes = _loadedAssemblies.SelectMany(asm => asm.GetTypes()
+            //     .Where(type => type.IsSubclassOf(typeof(AgentAbstract))))
+            //     .ToList();
+            //
+            // AgentTypes.AddRange(agentTypes);
             
-            Console.WriteLine($"Loaded {agentTypes.Count} agents from path {path}");
 
         }
 
@@ -79,11 +94,15 @@ namespace AgentLoader
 
         protected override Assembly Load(AssemblyName assemblyName)
         {
-            string filename = $"{assemblyName.Name}.dll";
-            if (_sharedAssemblies.ContainsKey(filename))
-                return _sharedAssemblies[filename];
-
-            return Assembly.Load(assemblyName);
+            string assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
+            if (assemblyPath != null)
+            {
+                string filename = $"{assemblyName.Name}.dll";
+                if (_sharedAssemblies.ContainsKey(filename))
+                    return _sharedAssemblies[filename];
+                return LoadFromAssemblyPath(assemblyPath);
+            }
+            return null;
         }
     }
 }

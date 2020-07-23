@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
@@ -27,8 +28,7 @@ namespace Transport.Kafka
             _configuration = options.Value;
         }
 
-        public void Subscribe(string id, string rpcQueueTopic, CancellationToken cancellationToken,
-            params string[] queueTopic)
+        public void SubscribeOne(string id, string topic, CancellationToken token)
         {
             var config = new ConsumerConfig()
             {
@@ -39,7 +39,24 @@ namespace Transport.Kafka
                 GroupId = id,
             };
             var consumer = new ConsumerBuilder<string, byte[]>(config).Build();
-            consumer.Subscribe(queueTopic);
+            consumer.Subscribe(topic);
+            Task.Run(() => ListenMsg(id, consumer, token), token);
+
+        }
+
+        public void Subscribe(string id, string rpcQueueTopic, CancellationToken cancellationToken,
+            Dictionary<string, CancellationToken>  queueTopic)
+        {
+            var config = new ConsumerConfig()
+            {
+                BootstrapServers = _configuration.Bootstrap,
+                Acks = Acks.Leader,
+                EnableAutoCommit = false,
+                AutoOffsetReset = AutoOffsetReset.Latest,
+                GroupId = id,
+            };
+            var consumer = new ConsumerBuilder<string, byte[]>(config).Build();
+            consumer.Subscribe(queueTopic.Keys);
 
             var rpcConsumer = new ConsumerBuilder<string, string>(config).Build();
             rpcConsumer.Subscribe(rpcQueueTopic);
@@ -48,7 +65,7 @@ namespace Transport.Kafka
             Task.Run(() => ListenRpc(rpcConsumer, cancellationToken), cancellationToken);
         }
 
-        public void Subscribe(string id, string rpcQueueTopic, params string[] queueTopic)
+        public void Subscribe(string id, string rpcQueueTopic, Dictionary<string, CancellationToken>  queueTopic)
         {
             Subscribe(id, rpcQueueTopic, CancellationToken.None, queueTopic);
         }
