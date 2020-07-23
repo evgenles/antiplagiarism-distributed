@@ -106,7 +106,7 @@ namespace DbWorkerAgent
                     UniquePercentage = x.UniquePercentage,
                     FileName = x.FileName,
                     Report = x.Report,
-                    StartDate = x.StartDate,
+                    StartDate = x.StartDate.ToLocalTime(),
                     Children = x.SubTasks?.Select(y => new TaskWithSubTasks
                     {
                         Creator = y.Creator,
@@ -118,7 +118,7 @@ namespace DbWorkerAgent
                         UniquePercentage = y.UniquePercentage,
                         FileName = y.FileName,
                         Report = y.Report,
-                        StartDate = y.StartDate,
+                        StartDate = y.StartDate.ToLocalTime(),
                     }).ToList()
                 });
                 return new AgentMessage<Dictionary<string, TaskWithSubTasks>>()
