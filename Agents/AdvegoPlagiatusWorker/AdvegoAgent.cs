@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Agent.Abstract;
@@ -244,8 +245,12 @@ namespace AdvegoPlagiatusWorker
         public override async Task ProcessMessageAsync(AgentMessage message)
         {
             var tMessage = message.To<TaskMessage>();
-            var path = $"{tMessage.Data.Id.ToString()}.docx";
-            if (!File.Exists(path)) await File.WriteAllBytesAsync(path, tMessage.Data.Data);
+            var path = $"{tMessage.Data.Id.ToString()}.rtf";
+            if (!File.Exists(path))
+            {
+                await using var bw = new BinaryWriter (File.Open(path, FileMode.Create), Encoding.UTF8);
+                bw.Write(tMessage.Data.Data);
+            }
             var isStarted = await StartAndCheckForUpdateAsync();
             if (isStarted)
             {

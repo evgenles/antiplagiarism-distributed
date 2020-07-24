@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
@@ -16,7 +17,6 @@ using Microsoft.Extensions.Logging;
 
 namespace DocumentSplitterAgent
 {
-    
     /// <summary>
     /// Document splitter take one big document to input and split it to a lot of documents by heading 1(and based
     /// on heading 1) styles.
@@ -28,7 +28,8 @@ namespace DocumentSplitterAgent
         private readonly IFileWorkerAgent _fileWorkerAgent;
         private readonly ILogger<DocumentSplitter> _logger;
 
-        public DocumentSplitter(ITransportSender transport, IFileWorkerAgent fileWorkerAgent, ILogger<DocumentSplitter> logger) : base(transport, AgentType.Splitter, "",
+        public DocumentSplitter(ITransportSender transport, IFileWorkerAgent fileWorkerAgent,
+            ILogger<DocumentSplitter> logger) : base(transport, AgentType.Splitter, "",
             MessageType.Unknown, MessageType.SplitterTask)
         {
             _fileWorkerAgent = fileWorkerAgent;
@@ -39,51 +40,47 @@ namespace DocumentSplitterAgent
         {
             var task = message.Data.ToObject<TaskMessage>();
             _logger.LogInformation($"Split processing {task.Id}");
-            await using var dataStream =  await _fileWorkerAgent.GetFileStreamAsync(task.Id.ToString("N"));
+            await using var dataStream = await _fileWorkerAgent.GetFileStreamAsync(task.Id.ToString("N"));
             var document = WordprocessingDocument.Open(dataStream, false);
             XDocument styles = ExtractStylesPart(document);
             List<string> headingBasedStyles = GetHeadingStylesId(document);
 
             var resultStreams = new List<(string name, Stream data)>();
             var stream = new MemoryStream();
-            var (currentDoc, currBody) = CreteNewDocToStream(stream, styles);
+            var writer = new StreamWriter(stream);
             var name = "Титульные страницы";
-            foreach (var sourceParagraph in document.MainDocumentPart.Document.Body.Elements<Paragraph>().ToList())
+            foreach (var sourceParagraph in document.MainDocumentPart.Document.Body.Descendants<Paragraph>().ToList())
             {
-                var destParagraph = new Paragraph();
-                CopyParagraphProperties(sourceParagraph, destParagraph);
-                CopyOnlyParagraphText(sourceParagraph, destParagraph);
-                
+                CopyOnlyParagraphText(sourceParagraph, writer);
+
                 //Separete into new stream by heading based styles paragraph
                 if (headingBasedStyles.Contains(sourceParagraph.ParagraphProperties?.Elements<ParagraphStyleId>()
                     .FirstOrDefault()
                     ?.Val?.Value))
                 {
-                    currentDoc.Close();
-                    stream.Seek(0, SeekOrigin.Begin);
+                   // stream.Seek(0, SeekOrigin.Begin);
                     resultStreams.Add((name, stream));
                     stream = new MemoryStream();
-                    name = destParagraph.InnerText.Substring(0, Math.Min(100, destParagraph.InnerText.Length));
-                    (currentDoc, currBody) = CreteNewDocToStream(stream, styles);
+                    name = sourceParagraph.InnerText.Substring(0, Math.Min(100, sourceParagraph.InnerText.Length));
+                    await writer.DisposeAsync();
+                    writer = new StreamWriter(stream);
                 }
 
-               
-
-                currBody.AppendChild(destParagraph);
+                // currBody.AppendChild(destParagraph);
             }
 
-            currentDoc.Close();
-            stream.Seek(0, SeekOrigin.Begin);
-            resultStreams.Add((name,stream));
-            
+            //currentDoc.Close();
+           // stream.Seek(0, SeekOrigin.Begin);
+            resultStreams.Add((name, stream));
+           // await writer.DisposeAsync();
+
             for (int i = 0; i < resultStreams.Count; i++)
             {
-
                 if (Transport != null)
                 {
-                    await using var ms = new MemoryStream();
-                    await resultStreams[i].data.CopyToAsync(ms);
-                    var bytes = ms.ToArray();
+                    // await using var ms = new MemoryStream();
+                    // await resultStreams[i].data.CopyToAsync(ms);
+                    var bytes = stream.ToArray();
                     var id = Guid.NewGuid();
                     await _fileWorkerAgent.UploadFileAsync(id.ToString("N"), bytes);
 
@@ -194,7 +191,7 @@ namespace DocumentSplitterAgent
             }
         }
 
-        private void CopyOnlyParagraphText(Paragraph source, Paragraph dest)
+        private void CopyOnlyParagraphText(Paragraph source, TextWriter dest)
         {
             var runs = source.Elements<Run>().ToList();
             foreach (var inRun in runs)
@@ -202,11 +199,13 @@ namespace DocumentSplitterAgent
                 var texts = inRun.Elements<Text>().ToList();
                 if (texts.Any())
                 {
-                    var run = new Run();
-                    texts.ForEach(t => run.AppendChild((Text) t.Clone()));
-                    dest.AppendChild(run);
+  //                  var run = new Run();
+                    texts.ForEach(t => dest.Write(t.InnerText));
+//                    dest.Write(run.InnerText);
                 }
             }
+
+            dest.WriteLine();
         }
 
         public override Task<AgentMessage> ProcessRpcAsync(AgentMessage<RpcRequest> message)
