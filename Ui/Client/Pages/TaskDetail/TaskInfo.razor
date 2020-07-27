@@ -33,6 +33,16 @@
                 <div class="col-sm">Current percentage: </div>
                 <div class="col-sm">@SelectedTask?.ProcessPercentage %</div>
             </div>
+            @if (SelectedTask.Workers != null)
+            {
+                @foreach (var (worker, info) in SelectedTask.Workers)
+                {
+                    <div class="row" style="width: 99%">
+                        <div class="col-sm"> - @worker </div>
+                        <div class="col-sm">@info.Process %</div>
+                    </div>
+                }
+            }
             @if (Math.Abs((SelectedTask?.ProcessPercentage ?? 0) - 100) < 0.0001)
             {
                 <div class="row" style="width: 99%">

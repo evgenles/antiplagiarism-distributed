@@ -54,18 +54,16 @@ namespace DbWorkerAgent
                     var taskMsg = message.To<TaskMessage>();
                     _logger.LogInformation($"Save to DB work task {taskMsg.Data.Id}. Parent: {taskMsg.Data.ParentId}");
 
-                    var upd = Builders<DbTask>.Update.Push(x => x.SubTasks, new DbTask
+                    var upd = Builders<DbTask>.Update.Push(x => x.SubTasks, new DbSubTask
                     {
                         Id = taskMsg.Data.Id,
-                        Creator = taskMsg.Data.Creator,
                         Name = taskMsg.Data.Name,
                         State = taskMsg.Data.State,
-                        FileName = taskMsg.Data.FileName,
                         StartDate = taskMsg.Data.StartDate,
                         ErrorPercentage = taskMsg.Data.ErrorPercentage,
                         ProcessPercentage = taskMsg.Data.ProcessPercentage,
-                        RequiredSubtype = taskMsg.Data.RequiredSubtype,
-                        UniquePercentage = taskMsg.Data.UniquePercentage
+                        UniquePercentage = taskMsg.Data.UniquePercentage,
+                        Workers = new Dictionary<string, WorkerInfo>()
                     });
                     await _taskCollection.FindOneAndUpdateAsync(x => x.Id == taskMsg.Data.ParentId, upd);
                     break;
@@ -74,13 +72,13 @@ namespace DbWorkerAgent
                 {
                     var taskMsg = message.To<TaskMessage>();
                     var upd = Builders<DbTask>.Update
-                        .Set(f => f.SubTasks[-1].ProcessPercentage, taskMsg.Data.ProcessPercentage)
-                        .Set(f => f.SubTasks[-1].ErrorPercentage, taskMsg.Data.ErrorPercentage)
-                        .Set(f => f.SubTasks[-1].UniquePercentage, taskMsg.Data.UniquePercentage);
+                        .Set(f => f.SubTasks[-1].Workers[taskMsg.Author.SubType].Process, taskMsg.Data.ProcessPercentage)
+                        .Set(f => f.SubTasks[-1].Workers[taskMsg.Author.SubType].Errors, taskMsg.Data.ErrorPercentage)
+                        .Set(f => f.SubTasks[-1].Workers[taskMsg.Author.SubType].Unique, taskMsg.Data.UniquePercentage);
                     if (taskMsg.Data.StartDate != DateTime.MinValue)
                         upd = upd.Set(f => f.SubTasks[-1].StartDate, taskMsg.Data.StartDate);
                     if (!string.IsNullOrEmpty(taskMsg.Data.Report))
-                        upd = upd.Set(f => f.SubTasks[-1].Report, taskMsg.Data.Report);
+                        upd = upd.Set(f => f.SubTasks[-1].Workers[taskMsg.Author.SubType].Report, taskMsg.Data.Report);
                     await _taskCollection.FindOneAndUpdateAsync(
                         x => x.Id == taskMsg.Data.ParentId && x.SubTasks.Any(st => st.Id == taskMsg.Data.Id),
                         upd);
@@ -105,20 +103,17 @@ namespace DbWorkerAgent
                     ProcessPercentage = x.ProcessPercentage,
                     UniquePercentage = x.UniquePercentage,
                     FileName = x.FileName,
-                    Report = x.Report,
                     StartDate = x.StartDate.ToLocalTime(),
                     Children = x.SubTasks?.Select(y => new TaskWithSubTasks
                     {
-                        Creator = y.Creator,
                         Id = y.Id,
                         Name = y.Name,
                         State = y.State,
                         ErrorPercentage = y.ErrorPercentage,
                         ProcessPercentage = y.ProcessPercentage,
                         UniquePercentage = y.UniquePercentage,
-                        FileName = y.FileName,
-                        Report = y.Report,
                         StartDate = y.StartDate.ToLocalTime(),
+                        Workers = y.Workers
                     }).ToList()
                 });
                 return new AgentMessage<Dictionary<string, TaskWithSubTasks>>()

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Agent.Abstract;
 using Agent.Abstract.Models;
@@ -26,6 +27,7 @@ namespace ETxtWorker
             "ETxt", MessageType.Unknown,
             MessageType.WorkerTask)
         {
+            AllowConcurrency = false;
             _logger = logger;
         }
 
@@ -70,22 +72,32 @@ namespace ETxtWorker
                     ?.LastOrDefault(btn => btn.AutomationId == "")
                     ?.AsButton();
             later?.Invoke();
+            var newVer = window.FindAllChildren(wnd => wnd.ByControlType(ControlType.Window))
+                .FirstOrDefault(wnd => wnd.Name.Contains("Доступна новая версия программы"));
+            while (newVer != null)
+            {
+                await Task.Delay(500);
+                newVer = window.FindAllChildren(wnd => wnd.ByControlType(ControlType.Window))
+                    .FirstOrDefault(wnd => wnd.Name.Contains("Доступна новая версия программы"));
+            }
             return (true, automation, window, app);
         }
 
         private async Task OpenFileAsync(AutomationElement window, string filePath)
         {
-            var fileMenu = window
-                .FindFirstDescendant(x => x.ByAutomationId("menuBar"))
-                .FindFirstChild(x => x.ByAutomationId("fileToolStripMenuItem"))
-                .AsMenuItem();
-            fileMenu.Expand();
-            var dec = fileMenu.FindFirstChild(x => x.ByAutomationId("openFileToolStripMenuItem")).AsMenuItem();
-            dec.Invoke();
+            var openFile = window
+                .FindFirstChild(x => x.ByAutomationId("openFileToolStripButton")).AsButton();
+            openFile.Invoke();
+            AutomationElement openWindow = null;
+            while (openWindow == null)
+            {
+                _logger.LogInformation("Waiting for openwindow");
+                await Task.Delay(500);
+                openWindow = window
+                    .FindFirstChild(x => x.ByControlType(ControlType.Window).And(x.ByName("Открыть файл")));
+            }
+            _logger.LogInformation($"openwindow childs: {openWindow.FindAllChildren().Length}");
 
-            await Task.Delay(500);
-            var openWindow = window
-                .FindFirstChild(x => x.ByControlType(ControlType.Window) /*.And(x.ByName("Открыть файл"))*/);
             var edit = openWindow
                 .FindFirstChild(x =>
                     x.ByControlType(ControlType.ComboBox).And(x.ByAutomationId("1148") /*x.ByName("Имя файла:"*/))
@@ -194,18 +206,18 @@ namespace ETxtWorker
                         .AsSlider();
                     processed = infoEls.Value;
                     _logger.LogInformation($"Processed {processed}%");
-                    // await Transport.SendAsync(MessageType.TaskStat.ToString(), new AgentMessage<TaskMessage>
-                    // {
-                    //     Author = this,
-                    //     MessageType = MessageType.TaskStat,
-                    //     Data = new TaskMessage
-                    //     {
-                    //         ParentId = parentId,
-                    //         Id = taskId,
-                    //         State = TaskState.Active,
-                    //         ProcessPercentage = processed
-                    //     }
-                    // });
+                    await Transport.SendAsync(MessageType.TaskStat.ToString(), new AgentMessage<TaskMessage>
+                    {
+                        Author = this,
+                        MessageType = MessageType.TaskStat,
+                        Data = new TaskMessage
+                        {
+                            ParentId = parentId,
+                            Id = taskId,
+                            State = TaskState.Active,
+                            ProcessPercentage = processed
+                        }
+                    });
                 }
 
                 await Task.Delay(5000);
@@ -229,6 +241,21 @@ namespace ETxtWorker
 
             var result = await MakeCheckAsync(window, false, tMessage.Data.Id, tMessage.Data.ParentId);
             app.Close();
+            await Transport.SendAsync(MessageType.TaskStat.ToString(), new AgentMessage<TaskMessage>
+            {
+                Author = this,
+                MessageType = MessageType.TaskStat,
+                Data = new TaskMessage
+                {
+                    ParentId = tMessage.Data.ParentId,
+                    Id = tMessage.Data.Id,
+                    State = TaskState.Finished,
+                    ProcessPercentage = 100,
+                    UniquePercentage = result.UniquePhrases,
+                    ErrorPercentage = result.Errors,
+                    Report = JsonSerializer.Serialize(result)
+                }
+            });
         }
 
         public override Task<AgentMessage> ProcessRpcAsync(AgentMessage<RpcRequest> message)

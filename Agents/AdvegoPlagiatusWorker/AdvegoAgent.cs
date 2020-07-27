@@ -229,8 +229,6 @@ namespace AdvegoPlagiatusWorker
                         }
                     }
 
-                    _logger.LogInformation("{DetailedAdvego}", detailed);
-
                     return detailed;
                 }
             }

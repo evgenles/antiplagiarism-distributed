@@ -129,18 +129,26 @@
                 var child = currentTask.Children?.FirstOrDefault(x => x.Id == msg.Id);
                 if (child != null)
                 {
-                    child.ProcessPercentage = msg.ProcessPercentage;
-                    child.ErrorPercentage = msg.ErrorPercentage;
-                    child.UniquePercentage = msg.UniquePercentage;
                     if (msg.StartDate != DateTime.MinValue)
                     {
                         child.StartDate = msg.StartDate;
                         if (currentTask.StartDate == DateTime.MinValue) currentTask.StartDate = child.StartDate;
                     }
-                    if (!string.IsNullOrEmpty(child.Report)) child.Report = msg.Report;
-                    currentTask.ProcessPercentage = currentTask.Children.Sum(x => x.ProcessPercentage) / currentTask.Children.Count;
-                    currentTask.UniquePercentage = currentTask.Children.Sum(x => x.UniquePercentage) / currentTask.Children.Count;
-                    currentTask.ErrorPercentage = currentTask.Children.Sum(x => x.ErrorPercentage) / currentTask.Children.Count;
+                    //if (!string.IsNullOrEmpty(child.Report)) child.Report = msg.Report;
+                    if (!string.IsNullOrEmpty(msg.WorkerName))
+                    {
+                        child.Workers[msg.WorkerName].Process = msg.ProcessPercentage;
+                        child.Workers[msg.WorkerName].Errors = msg.ErrorPercentage;
+                        child.Workers[msg.WorkerName].Unique = msg.UniquePercentage;
+
+                        child.ProcessPercentage = child.Workers.Sum(x => x.Value.Process) / child.Workers.Count;
+                        child.UniquePercentage = child.Workers.Sum(x => x.Value.Unique) / child.Workers.Count;
+                        child.ErrorPercentage = child.Workers.Sum(x => x.Value.Errors) / child.Workers.Count;
+                        
+                        currentTask.ProcessPercentage = currentTask.Children.Sum(x => x.ProcessPercentage) / currentTask.Children.Count;
+                        currentTask.UniquePercentage = currentTask.Children.Sum(x => x.UniquePercentage) / currentTask.Children.Count;
+                        currentTask.ErrorPercentage = currentTask.Children.Sum(x => x.ErrorPercentage) / currentTask.Children.Count;
+                    }
                 }
                 else
                 {
