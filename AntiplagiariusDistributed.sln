@@ -41,6 +41,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DbWorkerAgent", "Agents\DbW
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdvegoPlagiatusWorker", "Agents\AdvegoPlagiatusWorker\AdvegoPlagiatusWorker.csproj", "{18AF2536-F780-4D7D-8982-726A0A2FA0FC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ETxtWorker", "Agents\ETxtWorker\ETxtWorker.csproj", "{5B798842-19EF-4080-855D-DD170425FCA0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -111,6 +113,10 @@ Global
 		{18AF2536-F780-4D7D-8982-726A0A2FA0FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{18AF2536-F780-4D7D-8982-726A0A2FA0FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{18AF2536-F780-4D7D-8982-726A0A2FA0FC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5B798842-19EF-4080-855D-DD170425FCA0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5B798842-19EF-4080-855D-DD170425FCA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B798842-19EF-4080-855D-DD170425FCA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5B798842-19EF-4080-855D-DD170425FCA0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -133,5 +139,6 @@ Global
 		{CBF9E519-9F84-4327-80D2-7BD7F331A096} = {62536469-5CA7-46C2-8C8D-B9CAC9E88B81}
 		{8F07F8B5-BAAF-4119-9293-D17461DDB343} = {6F008EB8-4A85-4A47-9A41-11305F58E6E6}
 		{18AF2536-F780-4D7D-8982-726A0A2FA0FC} = {6F008EB8-4A85-4A47-9A41-11305F58E6E6}
+		{5B798842-19EF-4080-855D-DD170425FCA0} = {6F008EB8-4A85-4A47-9A41-11305F58E6E6}
 	EndGlobalSection
 EndGlobal

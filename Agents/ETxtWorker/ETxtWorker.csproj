@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>netcoreapp3.1</TargetFramework>
+        <RuntimeIdentifiers>win-x64;</RuntimeIdentifiers>
     </PropertyGroup>
 
     <ItemGroup>
@@ -9,10 +10,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="3.1.6" />
+      <PackageReference Include="FlaUI.UIA3" Version="3.2.0" />
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.4" />
-      <PackageReference Include="MongoDB.Driver" Version="2.10.4" />
-      <PackageReference Include="MongoDB.Driver.GridFS" Version="2.10.4" />
     </ItemGroup>
 
 </Project>

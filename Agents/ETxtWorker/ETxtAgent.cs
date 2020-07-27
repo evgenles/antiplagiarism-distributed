@@ -2,29 +2,46 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Net.NetworkInformation;
-using System.Net.Sockets;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
+using Agent.Abstract;
+using Agent.Abstract.Models;
 using FlaUI.Core;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Definitions;
+using FlaUI.Core.Logging;
 using FlaUI.UIA3;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Transport.Abstraction;
 
-namespace TestConsole
+namespace ETxtWorker
 {
-    class Program
+    public class ETxtAgent : AgentAbstract
     {
-        private const string ETxtPath = "C:\\Program Files (x86)\\Etxt Antiplagiat";
+        private readonly ILogger<ETxtAgent> _logger;
+        private const string ETxtPathX86 = "C:\\Program Files (x86)\\Etxt Antiplagiat";
+        private const string ETxtPath = "C:\\Program Files\\Etxt Antiplagiat";
+
+        public ETxtAgent(ITransportSender transport, ILogger<ETxtAgent> logger) : base(transport, AgentType.Worker,
+            "ETxt", MessageType.Unknown,
+            MessageType.WorkerTask)
+        {
+            AllowConcurrency = false;
+            _logger = logger;
+        }
 
         private async Task<(bool isLaunched, UIA3Automation automation, AutomationElement window, Application app)>
             StartAndCheckForUpdateAsync()
         {
-            var launchPath = Path.Combine(ETxtPath, "EtxtAntiplagiat.exe");
-            if (!File.Exists(launchPath)) return (false, null, null, null);
+            var launchPath = Path.Combine(ETxtPathX86, "EtxtAntiplagiat.exe");
+            if (!File.Exists(launchPath))
+            {
+                launchPath = Path.Combine(ETxtPath, "EtxtAntiplagiat.exe");
+                if (!File.Exists(launchPath))
+                    return (false, null, null, null);
+            }
+
             var app = FlaUI.Core.Application.Launch(launchPath);
             using var automation = new UIA3Automation();
             app.WaitWhileBusy();
@@ -55,22 +72,32 @@ namespace TestConsole
                     ?.LastOrDefault(btn => btn.AutomationId == "")
                     ?.AsButton();
             later?.Invoke();
+            var newVer = window.FindAllChildren(wnd => wnd.ByControlType(ControlType.Window))
+                .FirstOrDefault(wnd => wnd.Name.Contains("Доступна новая версия программы"));
+            while (newVer != null)
+            {
+                await Task.Delay(500);
+                newVer = window.FindAllChildren(wnd => wnd.ByControlType(ControlType.Window))
+                    .FirstOrDefault(wnd => wnd.Name.Contains("Доступна новая версия программы"));
+            }
             return (true, automation, window, app);
         }
 
         private async Task OpenFileAsync(AutomationElement window, string filePath)
         {
-            var fileMenu = window
-                .FindFirstDescendant(x => x.ByAutomationId("menuBar"))
-                .FindFirstChild(x => x.ByAutomationId("fileToolStripMenuItem"))
-                .AsMenuItem();
-            fileMenu.Expand();
-            var dec = fileMenu.FindFirstChild(x => x.ByAutomationId("openFileToolStripMenuItem")).AsMenuItem();
-            dec.Invoke();
+            var openFile = window
+                .FindFirstChild(x => x.ByAutomationId("openFileToolStripButton")).AsButton();
+            openFile.Invoke();
+            AutomationElement openWindow = null;
+            while (openWindow == null)
+            {
+                _logger.LogInformation("Waiting for openwindow");
+                await Task.Delay(500);
+                openWindow = window
+                    .FindFirstChild(x => x.ByControlType(ControlType.Window).And(x.ByName("Открыть файл")));
+            }
+            _logger.LogInformation($"openwindow childs: {openWindow.FindAllChildren().Length}");
 
-            await Task.Delay(500);
-            var openWindow = window
-                .FindFirstChild(x => x.ByControlType(ControlType.Window) /*.And(x.ByName("Открыть файл"))*/);
             var edit = openWindow
                 .FindFirstChild(x =>
                     x.ByControlType(ControlType.ComboBox).And(x.ByAutomationId("1148") /*x.ByName("Имя файла:"*/))
@@ -85,7 +112,7 @@ namespace TestConsole
             await Task.Delay(2000);
         }
 
-        private async Task MakeCheckAsync(AutomationElement window, bool isFullCheck, Guid taskId,
+        private async Task<ETxtResult> MakeCheckAsync(AutomationElement window, bool isFullCheck, Guid taskId,
             Guid parentId)
         {
             var checkButton = window
@@ -102,7 +129,7 @@ namespace TestConsole
                 if (compited.Name == "Готово")
                 {
                     processed = 100;
-                    var detailed = new List<AntiplagiariusDetailed>();
+                    var detailed = new List<ETxtDetailed>();
                     var jrn = window.FindFirstChild(x => x.ByAutomationId("journalWebBrowserHost"))
                         .FindFirstDescendant(x => x.ByName("about:blank"))
                         .FindFirstChild()
@@ -121,7 +148,7 @@ namespace TestConsole
                             }
                             else if (jrn[i].Name.Contains(" "))
                             {
-                                var d = new AntiplagiariusDetailed
+                                var d = new ETxtDetailed
                                 {
                                     SuccessQuery = false,
                                     Url = jrn[i + 1].Name
@@ -131,16 +158,17 @@ namespace TestConsole
                                     d.Comment = jrn[i + 2].Name;
                                     i++;
                                 }
+
                                 detailed.Add(d);
                                 i++;
                             }
                             else
                             {
-                                detailed.Add(new AntiplagiariusDetailed
+                                detailed.Add(new ETxtDetailed
                                 {
                                     SuccessQuery = true,
                                     Searcher = jrn[i + 1].Name.Trim(),
-                                    Сoincidences = double.TryParse(jrn[i + 2].Name.Split(' ', '%')[1], out var cons)
+                                    Matches = double.TryParse(jrn[i + 2].Name.Split(' ', '%')[1], out var cons)
                                         ? cons
                                         : 0,
                                     Url = jrn[i + 4].Name
@@ -161,58 +189,78 @@ namespace TestConsole
                             }
                         }
                     }
+
+                    _logger.LogInformation(
+                        $"Process complited: {processed}%. Unique: {unique}%. Errors: {error}%");
+                    return new ETxtResult
+                    {
+                        Errors = error,
+                        Processed = processed,
+                        UniquePhrases = unique,
+                        Detailed = detailed
+                    };
                 }
-                //     _logger.LogInformation(
-                //         $"Process complited: {result.Processed}%. Unique words: {result.UniqueWords}%. UniuePhrases: {result.UniquePhrases}%");
-                //     _logger.LogInformation(
-                //         $"Documents checked: {result.DocumentChecked}. Found {result.SimilarDocument}. Can`t open: {result.Errors}");
-                //     return result;
-                // }
                 else
                 {
                     var infoEls = window.FindFirstChild(x => x.ByAutomationId("totalProcessProgressBar"))
                         .AsSlider();
                     processed = infoEls.Value;
-
-                    //     _logger.LogInformation(
-                    //         $"Processed: {result.Processed}%. Unique words: {result.UniqueWords}%. UniuePhrases: {result.UniquePhrases}%");
-                    //     await Transport.SendAsync(MessageType.TaskStat.ToString(), new AgentMessage<TaskMessage>
-                    //     {
-                    //         Author = this,
-                    //         MessageType = MessageType.TaskStat,
-                    //         Data = new TaskMessage
-                    //         {
-                    //             ParentId = parentId,
-                    //             Id = taskId,
-                    //             State = TaskState.Active,
-                    //             ProcessPercentage = result.Processed
-                    //         }
-                    //     });
-                    // }
-                    Console.WriteLine($"Processed {processed}%");
-                    await Task.Delay(5000);
+                    _logger.LogInformation($"Processed {processed}%");
+                    await Transport.SendAsync(MessageType.TaskStat.ToString(), new AgentMessage<TaskMessage>
+                    {
+                        Author = this,
+                        MessageType = MessageType.TaskStat,
+                        Data = new TaskMessage
+                        {
+                            ParentId = parentId,
+                            Id = taskId,
+                            State = TaskState.Active,
+                            ProcessPercentage = processed
+                        }
+                    });
                 }
+
+                await Task.Delay(5000);
             }
 
-            return;
+            return null;
         }
 
-        static async Task Main(string[] args)
-        {
-            try
-            {
-                var result = new Program();
-                var (ok, automation, window, app) = await result.StartAndCheckForUpdateAsync();
-                await result.OpenFileAsync(window,
-                    "D:\\antiplagiarius-distributed\\AntiplagiariusDistributed\\TestConsole\\test.txt");
 
-                await result.MakeCheckAsync(window, false, Guid.Empty, Guid.Empty);
-            }
-            catch (Exception e)
+        public override async Task ProcessMessageAsync(AgentMessage message)
+        {
+            var tMessage = message.To<TaskMessage>();
+            var path = $"{tMessage.Data.Id.ToString()}.txt";
+            if (!File.Exists(path))
             {
-                Console.WriteLine(e);
-                throw;
+                await using var bw = new BinaryWriter (File.Open(path, FileMode.Create), Encoding.UTF8);
+                bw.Write(tMessage.Data.Data);
             }
+            var (ok, automation, window, app) = await StartAndCheckForUpdateAsync();
+            await OpenFileAsync(window, Path.Combine(Directory.GetCurrentDirectory(), path));
+
+            var result = await MakeCheckAsync(window, false, tMessage.Data.Id, tMessage.Data.ParentId);
+            app.Close();
+            await Transport.SendAsync(MessageType.TaskStat.ToString(), new AgentMessage<TaskMessage>
+            {
+                Author = this,
+                MessageType = MessageType.TaskStat,
+                Data = new TaskMessage
+                {
+                    ParentId = tMessage.Data.ParentId,
+                    Id = tMessage.Data.Id,
+                    State = TaskState.Finished,
+                    ProcessPercentage = 100,
+                    UniquePercentage = result.UniquePhrases,
+                    ErrorPercentage = result.Errors,
+                    Report = JsonSerializer.Serialize(result)
+                }
+            });
+        }
+
+        public override Task<AgentMessage> ProcessRpcAsync(AgentMessage<RpcRequest> message)
+        {
+            return null;
         }
     }
 }

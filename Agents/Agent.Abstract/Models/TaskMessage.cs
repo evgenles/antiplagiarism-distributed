@@ -8,6 +8,8 @@ namespace Agent.Abstract.Models
     public class TaskMessage
     {
         public string Creator { get; set; }
+
+        public string WorkerName { get; set; }
         
         public Guid Id { get; set; } = Guid.NewGuid();
         

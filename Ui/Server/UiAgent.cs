@@ -49,6 +49,7 @@ namespace Ui.Server
                     case MessageType.TaskStat:
                         var task = message.Data.ToObject<TaskMessage>();
                         task.Data = new byte[0];
+                        task.WorkerName = message.Author.SubType;
                         await _taskUiHub.Clients.All.SendAsync(SignalRMessages.TaskStateChanged.ToString(), task);
                         break;
                 }
