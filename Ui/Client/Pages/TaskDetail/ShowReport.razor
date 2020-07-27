@@ -1,0 +1,64 @@
+﻿@page "/tasks/showreport"
+@using Agent.Abstract.Models
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Logging
+@using Radzen
+@using Ui.Client.Pages.TaskDetail
+@using Ui.Shared
+@using System.Text.Json
+@using System.Text.Encodings.Web
+
+@foreach (var (subtype, report) in Shared.Reports)
+{
+    <h2 class="text-center">Detailed report for <b>@subtype</b> result</h2>
+    <div class="table table-responsive">
+
+        @{
+            foreach (var (name, value) in report.OrderByDescending(x => x.Value.GetType().Name))
+            {
+                if (value is List<Dictionary<string, object>> subTable)
+                {
+                    if (subTable.Any())
+                    {
+                        <table role="grid" class="table table-striped table-bordered table-hover table-sm">
+                            <thead class="thead-light text-dark">
+                            <tr>
+                                @foreach (var type in subTable.First().Keys)
+                                {
+                                    <th>@type</th>
+                                }
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var row in subTable)
+                            {
+                                <tr>
+                                    @foreach (var col in row.Values)
+                                    {
+                                        <td class="all-break">@col</td>
+                                    }
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    }
+                }
+                else
+                {
+                    <div class="row no-gutters">
+                        <div class="col-sm">@name :</div>
+                        <div class="col-sm">@value</div>
+                    </div>
+                }
+            }
+        }
+    </div>
+}
+
+@code {
+
+    [Inject]
+    private PageShared Shared { get; set; }
+
+
+}

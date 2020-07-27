@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Text;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Ui.Shared;
 
 namespace Ui.Client
 {
@@ -15,6 +16,7 @@ namespace Ui.Client
         {
             var builder = WebAssemblyHostBuilder.CreateDefault(args);
             builder.Services.AddSingleton<HttpClient>();
+            builder.Services.AddSingleton<PageShared>();
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("uk-UA");
             CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("uk-UA");
             CultureInfo.DefaultThreadCurrentCulture  = CultureInfo.GetCultureInfo("uk-UA");

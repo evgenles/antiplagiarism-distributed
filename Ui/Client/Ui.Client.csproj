@@ -20,5 +20,10 @@
     <ProjectReference Include="..\..\Agents\Agent.Abstract\Agent.Abstract.csproj" />
     <ProjectReference Include="..\Shared\Ui.Shared.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Update="Pages\TaskDetail\ShowReport.razor">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+  </ItemGroup>
 
 </Project>

@@ -1,5 +1,7 @@
 ﻿@using Ui.Shared
 @using Agent.Abstract.Models
+@using System.Text.Json
+@using Ui.Shared.Converters
 
 <div>
     <h2 class="text-center">Task Info</h2>
@@ -54,7 +56,7 @@
                     <div class="col-sm">@SelectedTask?.ErrorPercentage %</div>
                 </div>
                 <div class="row justify-content-center" style="width: 99%;margin-top: 10px">
-                    <button class="btn btn-outline-info">Detailed report</button>
+                    <button class="btn btn-outline-info" @onclick="@OnDetailedSelected">Detailed report</button>
                 </div>
             }
 
@@ -64,11 +66,31 @@
 
 
 @code {
+
     [Parameter]
     public TaskWithSubTasks SelectedTask { get; set; }
 
 
     [Parameter]
     public EventCallback<TaskWithSubTasks> SelectedTaskChanged { get; set; }
+
+    [Inject]
+    private PageShared SharedObj { get; set; }
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; }
+
+    private void OnDetailedSelected(EventArgs args)
+    {
+        if (SelectedTask?.Workers?.Any(x => !string.IsNullOrEmpty(x.Value.Report)) ?? false)
+        {
+            SharedObj.Reports = SelectedTask.Workers.ToDictionary(x => x.Key, 
+                x => JsonSerializer.Deserialize<Dictionary<string, object>>(x.Value.Report, new JsonSerializerOptions
+                {
+                    Converters = { new ObjectAsStringConverter() }
+                }));
+            NavigationManager.NavigateTo("/tasks/showreport");
+        }
+    }
 
 }

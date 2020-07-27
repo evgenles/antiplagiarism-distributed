@@ -14,17 +14,17 @@
     <div class="col-md-6" style="margin-bottom: 16px">
         <h2 class="text-center">Task List</h2>
 
-        <RadzenTree Data="@taskMessages.Values.OrderByDescending(x=>x.StartDate)" Expand="@Expand" Change="@Change"
+        <RadzenTree Data="@taskMessages.Values.OrderByDescending(x => x.StartDate)" Expand="@Expand" Change="@Change"
                     Style="width: 100%">
             <RadzenTreeLevel TextProperty="Name" ChildrenProperty="Children">
                 <Template>
                     @{
                         var task = context.Value as TaskWithSubTasks;
                     }
-                    <div class="row" style="@($"width: 98%;background-color:{(Math.Abs(task.ProcessPercentage - 100) < 0.1?"#b3ffb326":"#fff98026")}")">
-                          <div class="col-sm-8" style="word-break: break-all;word-wrap: break-word">@task.Name</div>
+                    <div class="row" style="@($"width: 98%;background-color:{(Math.Abs(task.ProcessPercentage - 100) < 0.1 ? "#b3ffb326" : "#fff98026")}")">
+                        <div class="col-sm-8" style="word-break: break-all;word-wrap: break-word">@task.Name</div>
                         <div class="col-sm-4">@task.StartDate</div>
-                        
+
                         <div style="@($"height: 0.4em;background-color: green;width: {(int) task.ProcessPercentage}%;border-radius: 1em;opacity: 0.8;")"></div>
                     </div>
                 </Template>
@@ -37,7 +37,7 @@
                     <div class="row" style="width: 98%;margin-left:0;">
                         <div class="col-sm-8" style="word-break: break-all;word-wrap: break-word">@task.Name</div>
                         <div class="col-sm-4">@task.StartDate</div>
-                        
+
                         <div style="@($"height: 0.4em;background-color: green;width: {(int) task.ProcessPercentage}%;border-radius: 1em;opacity: 0.8;")"></div>
                     </div>
                 </Template>
@@ -134,7 +134,7 @@
                         child.StartDate = msg.StartDate;
                         if (currentTask.StartDate == DateTime.MinValue) currentTask.StartDate = child.StartDate;
                     }
-                    //if (!string.IsNullOrEmpty(child.Report)) child.Report = msg.Report;
+    //if (!string.IsNullOrEmpty(child.Report)) child.Report = msg.Report;
                     if (!string.IsNullOrEmpty(msg.WorkerName))
                     {
                         child.Workers[msg.WorkerName].Process = msg.ProcessPercentage;
@@ -144,7 +144,7 @@
                         child.ProcessPercentage = child.Workers.Sum(x => x.Value.Process) / child.Workers.Count;
                         child.UniquePercentage = child.Workers.Sum(x => x.Value.Unique) / child.Workers.Count;
                         child.ErrorPercentage = child.Workers.Sum(x => x.Value.Errors) / child.Workers.Count;
-                        
+
                         currentTask.ProcessPercentage = currentTask.Children.Sum(x => x.ProcessPercentage) / currentTask.Children.Count;
                         currentTask.UniquePercentage = currentTask.Children.Sum(x => x.UniquePercentage) / currentTask.Children.Count;
                         currentTask.ErrorPercentage = currentTask.Children.Sum(x => x.ErrorPercentage) / currentTask.Children.Count;
@@ -174,6 +174,15 @@
                         var task = x.Value;
                         if (task.Children?.Count > 0)
                         {
+                            foreach (var child in task.Children)
+                            {
+                                if (child.Workers?.Any() ?? false)
+                                {
+                                    child.ProcessPercentage = child.Workers.Sum(x => x.Value.Process) / child.Workers.Count;
+                                    child.UniquePercentage = child.Workers.Sum(x => x.Value.Unique) / child.Workers.Count;
+                                    child.ErrorPercentage = child.Workers.Sum(x => x.Value.Errors) / child.Workers.Count;
+                                }
+                            }
                             task.ProcessPercentage = task.Children.Sum(y => y.ProcessPercentage) / task.Children.Count;
                             task.ErrorPercentage = task.Children.Sum(y => y.ErrorPercentage) / task.Children.Count;
                             task.UniquePercentage = task.Children.Sum(y => y.UniquePercentage) / task.Children.Count;
